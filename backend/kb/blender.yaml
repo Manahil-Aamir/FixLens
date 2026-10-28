@@ -1,0 +1,76 @@
+id: blender
+name: Blender
+components:
+  [
+    pitcher,
+    lid,
+    blade assembly,
+    sealing ring,
+    motor base,
+    control buttons,
+    power cord,
+    drive socket,
+  ]
+
+faults:
+  - id: blades_not_spinning
+    name: Motor runs but blades don't spin
+    description: You hear the motor whirring inside the base, but the blades inside the jar remain stationary.
+    visual_cues: [motor humming, blades still]
+    checks:
+      - Unplug and check if the rubber drive socket on the base or the plastic gear on the jar is stripped or worn out.
+      - Ensure the jar is twisted and locked completely onto the motor base.
+  - id: leaking_pitcher
+    name: Leaking from bottom of jar
+    description: Liquids seep out from under the blade assembly during blending.
+    visual_cues: [liquid leaking, wet base]
+    checks:
+      - Inspect the rubber gasket/sealing ring around the blade assembly for cracks or incorrect placement.
+      - Ensure the retaining nut or bottom screw ring is screwed on tightly.
+  - id: burning_smell_blender
+    name: Burning smell / Motor stalls
+    description: The blender smells like hot plastic or smoke when attempting to blend thick ingredients.
+    visual_cues: [burning smell, smoke, stalled blades]
+    checks:
+      - Stop immediately; adding too many frozen items or large chunks without enough liquid can stall the motor.
+      - Let the motor cool down completely before reuse.
+  - id: blender_no_power
+    name: Completely dead motor
+    description: Pressing power buttons yields no sound or lights.
+    visual_cues: [no sound, dead lights]
+    checks:
+      - Test outlet with another appliance and inspect power cord.
+
+questions:
+  - id: q_motor_sound
+    name: Motor Sound
+    text: When you turn it on, what does the motor do?
+    distinguishes: [blades_not_spinning, burning_smell_blender, blender_no_power]
+    options:
+      - label: Motor hums/whirrs, but blades don't turn
+        supports: [blades_not_spinning]
+      - label: Smells like burning or smoke when running
+        supports: [burning_smell_blender]
+      - label: Completely silent, no power at all
+        supports: [blender_no_power]
+      - label: Runs normally
+        rules_out: [blades_not_spinning, burning_smell_blender, blender_no_power]
+  - id: q_blender_leak
+    name: Leak Status
+    text: Is liquid leaking from the base of the pitcher?
+    distinguishes: [leaking_pitcher]
+    options:
+      - label: Yes, liquid leaks from under the jar
+        supports: [leaking_pitcher]
+      - label: No leaks
+        rules_out: [leaking_pitcher]
+
+safety_rules:
+  - id: sr_sharp_blades
+    triggers: [cut fingers, cleaning blades]
+    risk: high
+    message: Exercise extreme caution when handling blender blade assemblies; blades are razor-sharp. Always unplug before cleaning.
+  - id: sr_blender_smoke
+    triggers: [smoke, burning smell, melted gear]
+    risk: stop
+    message: Unplug the blender immediately. Continuing to run a stalled motor can cause electrical fire.

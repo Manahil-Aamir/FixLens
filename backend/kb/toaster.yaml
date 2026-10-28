@@ -1,0 +1,88 @@
+id: toaster
+name: Toaster
+components:
+  [slot, lever, carriage, crumb tray, browning dial, cancel button, heating elements, casing]
+
+faults:
+  - id: one_side_not_toasting
+    name: One side not toasting
+    description: Bread toasts unevenly, with one side remaining pale because an internal heating element has failed.
+    visual_cues: [uneven toast, pale bread, element dark]
+    checks:
+      - Inspect the internal wire grids when the toaster is unplugged to see if any element wire is snapped.
+      - If an element wire is broken, the toaster will need replacement or professional repair.
+  - id: lever_wont_stay_down
+    name: Carriage lever won't stay down
+    description: The bread carriage pops right back up immediately when pushed down.
+    visual_cues: [lever pops up, carriage stuck]
+    checks:
+      - Unplug the toaster and check if crumbs are jamming the latch mechanism at the bottom of the slot.
+      - Clean out any accumulated debris using a soft brush or compressed air.
+  - id: stuck_bread
+    name: Bread stuck in slot
+    description: A piece of bread or pastry is jammed inside the heating wires.
+    visual_cues: [jammed bread, smoke, charred crust]
+    checks:
+      - Unplug the toaster immediately before attempting to retrieve anything.
+      - Never insert metal knives, forks, or utensils into the slots; use wooden tongs instead.
+  - id: burnt_toast
+    name: Constantly burning toast
+    description: Toast burns on normal settings because food debris is stuck near the thermostat or elements.
+    visual_cues: [smoke, burnt smell, charred crumbs]
+    checks:
+      - Empty and clean the crumb tray located at the bottom of the unit.
+      - Turn down the browning control dial.
+  - id: no_power_toaster
+    name: Toaster completely dead
+    description: Lever goes down, but the heating elements do not glow and no heat is produced.
+    visual_cues: [no glow, cold elements]
+    checks:
+      - Test the wall outlet with another working device.
+      - Check the power cord for any cuts, burns, or kinks.
+
+questions:
+  - id: q_lever_behavior
+    name: Lever Behavior
+    text: What happens when you push the carriage lever down?
+    distinguishes: [lever_wont_stay_down, no_power_toaster]
+    options:
+      - label: It pops right back up immediately
+        supports: [lever_wont_stay_down]
+        rules_out: [no_power_toaster]
+      - label: It stays down, but elements don't heat
+        supports: [no_power_toaster]
+        rules_out: [lever_wont_stay_down]
+      - label: It stays down normally
+        rules_out: [lever_wont_stay_down, no_power_toaster]
+  - id: q_toast_quality
+    name: Toast Quality
+    text: How does the toast turn out when it finishes?
+    distinguishes: [one_side_not_toasting, burnt_toast]
+    options:
+      - label: One side is toasted, the other side is pale
+        supports: [one_side_not_toasting]
+      - label: Everything is heavily burnt or smokes
+        supports: [burnt_toast]
+      - label: Toasts evenly
+        rules_out: [one_side_not_toasting, burnt_toast]
+  - id: q_debris_or_jam
+    name: Debris and Jamming
+    text: Is there visible jammed food or excessive crumbs inside?
+    distinguishes: [stuck_bread, burnt_toast]
+    options:
+      - label: Yes, food is physically stuck in the slot
+        supports: [stuck_bread]
+      - label: Heavy crumb buildup at the bottom
+        supports: [burnt_toast]
+      - label: Clean interior
+        rules_out: [stuck_bread, burnt_toast]
+
+safety_rules:
+  - id: sr_metal_utensil
+    triggers: [metal knife, fork in slot, electric shock risk]
+    risk: stop
+    message: Never insert metal utensils into a plugged-in toaster. Always unplug the unit first to avoid severe electric shock.
+  - id: sr_burning_toaster
+    triggers: [heavy smoke, sparks, burning smell, melted plastic]
+    risk: stop
+    message: Unplug the toaster immediately, let it cool down, and stop using it if wiring is damaged.

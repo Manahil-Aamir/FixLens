@@ -1,0 +1,133 @@
+id: electric_kettle
+name: Electric kettle
+components:
+  [
+    lid,
+    spout,
+    handle,
+    jug body,
+    water window,
+    power base,
+    power cord,
+    on/off switch,
+    indicator light,
+  ]
+
+faults:
+  - id: no_power
+    name: No power
+    description: Nothing happens when switched on; no light, no heating.
+    visual_cues: [no light, indicator off]
+    checks:
+      - Try a different wall socket that you know works.
+      - Make sure the kettle sits fully and correctly on its base.
+      - Check whether the plug fuse (where fitted) has blown.
+  - id: element_failure
+    name: Heating element failure
+    description: Indicator light comes on but the water never heats.
+    visual_cues: [light on]
+    checks:
+      - Try boiling a small amount of water for one minute and see whether it warms at all.
+      - If it stays cold, stop using it; the element needs professional repair or replacement.
+  - id: wont_switch_off
+    name: Does not switch off automatically
+    description: Keeps boiling after reaching boiling point because the auto shut-off is not working.
+    visual_cues: [steam, lid open]
+    checks:
+      - Make sure the lid is fully closed, since many models need it shut to trigger the switch-off.
+      - Switch it off manually at the switch each time until it is repaired.
+  - id: leaking
+    name: Leaking
+    description: Water escapes from the jug body, seams or the base seal.
+    visual_cues: [water stain, puddle, drip, rust]
+    checks:
+      - Empty it, dry it, then fill with water and look for where the drip starts.
+      - Check the lid seal and the water window for cracks.
+  - id: limescale_slow_boil
+    name: Limescale build-up
+    description: White or grey deposits slow down heating and affect the element.
+    visual_cues: [white deposit, scale, crust, residue, limescale]
+    checks:
+      - Descale with a half-and-half mix of white vinegar and water, then boil and rinse thoroughly.
+      - Rinse and boil fresh water twice before drinking.
+  - id: damaged_cord_or_base
+    name: Damaged cord, plug or power base
+    description: The cord, plug or base shows damage, heat marks or loose connections.
+    visual_cues: [frayed, exposed wire, scorch, melted, burn mark, cracked base]
+    checks: []
+
+questions:
+  - id: q_light
+    text: When you switch it on, what happens?
+    distinguishes: [no_power, element_failure]
+    options:
+      - label: Nothing, no light at all
+        supports: [no_power]
+        rules_out: [element_failure]
+      - label: Light comes on but the water stays cold
+        supports: [element_failure]
+        rules_out: [no_power]
+      - label: It heats normally
+        rules_out: [no_power, element_failure]
+  - id: q_boil_time
+    text: Does it take much longer to boil than it used to?
+    distinguishes: [limescale_slow_boil, element_failure]
+    options:
+      - label: Yes, noticeably longer
+        supports: [limescale_slow_boil]
+      - label: No, about the same
+        rules_out: [limescale_slow_boil]
+  - id: q_shutoff
+    text: When the water boils, does it switch itself off?
+    distinguishes: [wont_switch_off]
+    options:
+      - label: No, it keeps boiling
+        supports: [wont_switch_off]
+      - label: Yes, it switches off
+        rules_out: [wont_switch_off]
+  - id: q_leak
+    text: Is any water escaping?
+    distinguishes: [leaking]
+    options:
+      - label: Under or around the base
+        supports: [leaking]
+      - label: From the spout or lid only
+        supports: [leaking]
+      - label: Water got into the base
+        supports: [leaking, damaged_cord_or_base]
+      - label: No leaks
+        rules_out: [leaking]
+  - id: q_smell
+    text: Have you noticed a burning smell, sparks, smoke or melted plastic?
+    distinguishes: [damaged_cord_or_base, element_failure]
+    options:
+      - label: Yes, burning smell or sparks
+        supports: [damaged_cord_or_base]
+      - label: No
+        rules_out: [damaged_cord_or_base]
+  - id: q_cord
+    text: What does the cord and plug look like?
+    distinguishes: [damaged_cord_or_base, no_power]
+    options:
+      - label: Cord or plug is damaged or hot
+        supports: [damaged_cord_or_base]
+      - label: Looks fine
+        rules_out: [damaged_cord_or_base]
+
+safety_rules:
+  - id: sr_burning
+    triggers: [burning smell, sparks, smoke, melted, scorch]
+    risk: stop
+    message: Stop using the kettle. Unplug it only if you can do so safely, keep it away from flammable things, and do not try to repair it.
+  - id: sr_water_in_base
+    triggers: [water got into the base, water in the base]
+    risk: stop
+    message: Do not plug it in. Water in the electrical base is a shock hazard; let a professional check it or replace it.
+  - id: sr_cord
+    triggers: [frayed, exposed wire, cord or plug is damaged]
+    risk: stop
+    message: Do not use it. A damaged cord or plug is a fire and shock risk; replace the unit or have it repaired by a qualified person.
+  - id: sr_cracked
+    triggers: [cracked body, cracked jug]
+    risk: high
+    message: Stop using it for hot water until the cracked part is replaced; scalding is a risk.

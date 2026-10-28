@@ -1,0 +1,60 @@
+id: coffee_maker
+name: Coffee Maker
+components:
+  [carafe, filter basket, water reservoir, shower head, heating plate, power button, warming plate]
+
+faults:
+  - id: slow_dripping_scale
+    name: Slow brewing or mineral buildup
+    description: Water drips very slowly through the basket due to mineral scale clogging internal tubes.
+    visual_cues: [white crust, slow drip, scale deposits]
+    checks:
+      - Run a water and white vinegar solution through a full brew cycle, then rinse with clean water twice.
+  - id: coffee_not_hot
+    name: Coffee is not hot enough
+    description: The brewing cycle finishes, but the coffee is lukewarm or the warming plate fails.
+    visual_cues: [lukewarm coffee, cold plate]
+    checks:
+      - Ensure the carafe is sitting flat on the heating plate without obstruction.
+      - If the plate stays cold after brewing, the internal thermostat or heating pad has failed.
+  - id: leaking_reservoir
+    name: Leaking water from bottom
+    description: Water pools underneath the coffee maker during the filling or brewing process.
+    visual_cues: [puddle under machine, drip]
+    checks:
+      - Check the water reservoir for hairline cracks.
+      - Ensure the anti-drip valve at the bottom of the filter basket isn't jammed open with coffee grounds.
+  - id: coffee_maker_dead
+    name: Won't turn on
+    description: Pressing the power button does nothing; indicator lights stay off.
+    visual_cues: [no lights, dead screen]
+    checks:
+      - Check wall outlet power and ensure the power cord is pushed in firmly.
+
+questions:
+  - id: q_coffee_temp
+    name: Temperature and Flow
+    text: How is the brewing speed and temperature?
+    distinguishes: [slow_dripping_scale, coffee_not_hot]
+    options:
+      - label: Takes very long to brew / mineral buildup visible
+        supports: [slow_dripping_scale]
+      - label: Brews fast, but coffee is lukewarm
+        supports: [coffee_not_hot]
+      - label: Brews hot and normally
+        rules_out: [slow_dripping_scale, coffee_not_hot]
+  - id: q_coffee_leaks
+    name: Leak Check
+    text: Do you see water pooling underneath or leaking from the basket?
+    distinguishes: [leaking_reservoir]
+    options:
+      - label: Yes, water leaks from the bottom or reservoir
+        supports: [leaking_reservoir]
+      - label: No leaks
+        rules_out: [leaking_reservoir]
+
+safety_rules:
+  - id: sr_hot_surface
+    triggers: [burn, hot plate, scalding water]
+    risk: high
+    message: Exercise caution around heating plates and hot water reservoirs to avoid burns or scalding.

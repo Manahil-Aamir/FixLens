@@ -1,0 +1,75 @@
+id: microwave
+name: Microwave Oven
+components:
+  [door, control panel, glass turntable, roller ring, waveguide cover, lamp, cabinet, power cord]
+
+faults:
+  - id: turntable_not_spinning
+    name: Turntable not spinning
+    description: The microwave heats food, but the glass plate stays still, causing uneven heating.
+    visual_cues: [plate stationary, food not rotating]
+    checks:
+      - Check if the glass tray is seated correctly on the central plastic hub.
+      - Clean food spills out from under the roller ring track.
+  - id: microwave_not_heating
+    name: Microwave not heating food
+    description: The light turns on, the fan runs, and the plate spins, but food stays completely cold.
+    visual_cues: [light on, plate spinning, cold food]
+    checks:
+      - Ensure the door latches completely and the door switch clicks shut.
+      - Do not attempt internal repairs; high-voltage capacitors hold lethal voltage even when unplugged.
+  - id: sparks_inside
+    name: Arcing or sparking inside cavity
+    description: Visible electrical sparks or loud popping sounds occur during operation.
+    visual_cues: [sparks, electrical flash, burnt waveguide cover]
+    checks:
+      - Check if you are using metallic containers or foil-lined packaging.
+      - Inspect the grey waveguide cover on the right interior wall for grease buildup or burning.
+  - id: door_wont_close
+    name: Door latch failure
+    description: The microwave door does not latch securely, preventing the unit from starting.
+    visual_cues: [door ajar, broken latch, loose door]
+    checks:
+      - Check for food debris stuck around the door frame and safety interlock switches.
+      - Inspect the plastic latch hooks for cracks.
+  - id: dead_display
+    name: No power / Dead control panel
+    description: The clock display is blank and buttons do not respond.
+    visual_cues: [blank screen, no lights]
+    checks:
+      - Plug another appliance into the same wall outlet to verify power.
+      - Check if the household circuit breaker has tripped.
+
+questions:
+  - id: q_heating_status
+    name: Heating Status
+    text: When running a test with a cup of water, does the water get warm?
+    distinguishes: [microwave_not_heating, dead_display]
+    options:
+      - label: No, water stays completely cold
+        supports: [microwave_not_heating]
+      - label: Display is completely blank, won't start at all
+        supports: [dead_display]
+      - label: Yes, it heats normally
+        rules_out: [microwave_not_heating, dead_display]
+  - id: q_visual_operation
+    name: Visual Operation
+    text: Do you notice sparks, or is the turntable not turning?
+    distinguishes: [sparks_inside, turntable_not_spinning]
+    options:
+      - label: Sparks or popping sounds inside
+        supports: [sparks_inside]
+      - label: Plate stays still while heating
+        supports: [turntable_not_spinning]
+      - label: Operates smoothly without sparks
+        rules_out: [sparks_inside, turntable_not_spinning]
+
+safety_rules:
+  - id: sr_high_voltage
+    triggers: [internal repair, capacitor, high voltage, opening casing]
+    risk: stop
+    message: Never open the microwave cabinet. Internal high-voltage components can retain a lethal electrical charge even when unplugged.
+  - id: sr_microwave_sparks
+    triggers: [sparks, arcing, metal]
+    risk: stop
+    message: Stop the microwave immediately. Remove any metal objects or foil to prevent fire or damage to the magnetron.

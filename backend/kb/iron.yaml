@@ -1,0 +1,73 @@
+id: iron
+name: Iron
+components:
+  [
+    soleplate,
+    temperature dial,
+    water tank,
+    spray nozzle,
+    steam vent,
+    power cord,
+    indicator light,
+    heel rest,
+  ]
+
+faults:
+  - id: iron_not_heating
+    name: Soleplate stays cold
+    description: Indicator light may be on or off, but the metal soleplate never warms up.
+    visual_cues: [cold soleplate, no heat]
+    checks:
+      - Ensure the temperature dial is turned up past minimum (e.g., to Cotton/Linen).
+      - Check if the power cord shows any kinks or internal breaks near the swivel joint.
+  - id: iron_leaking_water
+    name: Water leaking from soleplate
+    description: Water drips or spurts out of the steam vents onto clothes instead of vaporizing.
+    visual_cues: [water spots, leaking soleplate, sputtering]
+    checks:
+      - Ensure the iron has reached full operating temperature before turning on the steam feature.
+      - Do not overfill the water reservoir.
+  - id: brown_residue_soleplate
+    name: Staining clothes / Soleplate buildup
+    description: Starchy or burnt residue on the soleplate smears clothes during ironing.
+    visual_cues: [brown spots, residue, sticky soleplate]
+    checks:
+      - Clean the cooled soleplate with a damp cloth and baking soda or specialized iron cleaner.
+  - id: iron_no_power
+    name: Completely dead
+    description: No indicator light and no heating when plugged in.
+    visual_cues: [no light, cold]
+    checks:
+      - Verify the wall socket is functional.
+
+questions:
+  - id: q_iron_heat
+    name: Heat Status
+    text: Does the metal soleplate get warm at all when set to high?
+    distinguishes: [iron_not_heating, iron_no_power]
+    options:
+      - label: Stays completely cold
+        supports: [iron_not_heating]
+        rules_out: [iron_no_power]
+      - label: No indicator light, completely dead
+        supports: [iron_no_power]
+        rules_out: [iron_not_heating]
+      - label: Heats normally
+        rules_out: [iron_not_heating, iron_no_power]
+  - id: q_iron_water
+    name: Water and Steam
+    text: Is water dripping or sputtering from the bottom vents?
+    distinguishes: [iron_leaking_water, brown_residue_soleplate]
+    options:
+      - label: Yes, water leaks or sputters from soleplate
+        supports: [iron_leaking_water]
+      - label: Brown sticky residue staining clothes
+        supports: [brown_residue_soleplate]
+      - label: Steam works cleanly
+        rules_out: [iron_leaking_water, brown_residue_soleplate]
+
+safety_rules:
+  - id: sr_hot_soleplate
+    triggers: [burn skin, touch hot plate]
+    risk: high
+    message: The soleplate reaches high temperatures capable of causing severe burns. Always rest the iron upright on its heel.

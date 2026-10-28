@@ -1,0 +1,78 @@
+id: hair_dryer
+name: Hair Dryer
+components:
+  [
+    nozzle,
+    air intake grille,
+    fan blade,
+    heating coil,
+    power cord,
+    speed switch,
+    heat switch,
+    cool shot button,
+  ]
+
+faults:
+  - id: weak_airflow
+    name: Weak airflow or overheating
+    description: The hair dryer blows weakly or smells like burning dust because the intake filter is blocked.
+    visual_cues: [dust buildup, lint, slow fan]
+    checks:
+      - Unplug the dryer and clean lint and hair out of the removable rear air intake grille.
+      - Ensure nothing is blocking the front nozzle.
+  - id: blows_cold_air
+    name: Blows only cold air
+    description: Fan runs fine, but the heating element does not turn on.
+    visual_cues: [cold breeze, no heat]
+    checks:
+      - Check if the cool-shot button is stuck or accidentally pressed down.
+      - If switches are set correctly to high heat and it remains cold, the internal heating filament is broken.
+  - id: dead_hair_dryer
+    name: Completely dead
+    description: Switch is turned on, but nothing happens and no indicator light or sound occurs.
+    visual_cues: [no sound, no air]
+    checks:
+      - Test the ALCI safety reset button on the power plug (if equipped).
+      - Try a different wall outlet.
+  - id: burning_smell_dryer
+    name: Burning smell or strange noise
+    description: Loud rattling sounds or a sharp burning smell emanate from the barrel.
+    visual_cues: [burning smell, rattling noise, spark]
+    checks:
+      - Immediately unplug the dryer; hair wrapped around the internal motor bearing can cause friction and fire.
+
+questions:
+  - id: q_dryer_heat
+    name: Heat Output
+    text: Does the dryer produce any heat when turned on high?
+    distinguishes: [blows_cold_air, dead_hair_dryer]
+    options:
+      - label: Blows air, but completely cold
+        supports: [blows_cold_air]
+        rules_out: [dead_hair_dryer]
+      - label: Completely dead, no fan or heat
+        supports: [dead_hair_dryer]
+        rules_out: [blows_cold_air]
+      - label: Heats and blows normally
+        rules_out: [blows_cold_air, dead_hair_dryer]
+  - id: q_dryer_airflow
+    name: Airflow Quality
+    text: Is the airflow unusually weak, or do you smell burning?
+    distinguishes: [weak_airflow, burning_smell_dryer]
+    options:
+      - label: Weak airflow with lint buildup
+        supports: [weak_airflow]
+      - label: Burning smell or loud rattling noise
+        supports: [burning_smell_dryer]
+      - label: Airflow is strong and clean
+        rules_out: [weak_airflow, burning_smell_dryer]
+
+safety_rules:
+  - id: sr_water_hazard
+    triggers: [dropped in water, wet plug, bathroom shock]
+    risk: stop
+    message: Never use a hair dryer near a filled tub, sink, or shower. If it falls in water, do not touch it before unplugging at the breaker.
+  - id: sr_burning_dryer
+    triggers: [burning smell, smoke, spark, rattling]
+    risk: stop
+    message: Stop using the hair dryer immediately. Internal motor failure or short circuits present a fire hazard.

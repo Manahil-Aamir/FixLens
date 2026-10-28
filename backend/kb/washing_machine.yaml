@@ -1,0 +1,94 @@
+id: washing_machine
+name: Washing Machine
+components:
+  [
+    drum,
+    door,
+    detergent drawer,
+    drain pump filter,
+    control panel,
+    water inlet hoses,
+    power cord,
+    leveling legs,
+  ]
+
+faults:
+  - id: will_not_drain
+    name: Does not drain water
+    description: Water remains trapped inside the drum at the end of a cycle because the drain hose or pump is blocked.
+    visual_cues: [standing water, full drum, error code on display]
+    checks:
+      - Unplug the machine and check the drain pump filter (usually located behind a small access panel at the bottom front) for coins, lint, or debris.
+      - Ensure the drain hose is not kinked, bent, or clogged where it connects to the plumbing.
+  - id: excessive_vibration_shaking
+    name: Excessive vibration and shaking during spin cycle
+    description: The machine bangs violently, shakes, or walks across the floor during high-speed spinning.
+    visual_cues: [loud banging, machine moving, unbalanced load]
+    checks:
+      - Open the door and redistribute the laundry evenly inside the drum if it has bunched up on one side.
+      - Check that all four leveling legs are firmly planted on the floor and locked in place with their lock nuts.
+  - id: will_not_fill
+    name: Water does not enter the machine
+    description: The cycle starts, but water never fills the drum because supply valves are closed or inlet filters are clogged.
+    visual_cues: [dry clothes, error code, silent filling phase]
+    checks:
+      - Make sure the household water supply taps connected to the inlet hoses are fully turned on.
+      - Unscrew the inlet hoses at the back of the machine and clean the small mesh filters inside for sediment buildup.
+  - id: leaking_washer
+    name: Water leaking around the machine
+    description: Puddles or drips appear on the floor underneath or around the front of the washing machine.
+    visual_cues: [puddle, water stain, wet floor, dripping hose]
+    checks:
+      - Inspect the rubber door gasket (for front-loaders) for tears, holes, or trapped debris preventing a proper seal.
+      - Check the water inlet hoses and drain hose connections for looseness or worn rubber washers.
+  - id: door_wont_unlock
+    name: Door or lid won't open after cycle
+    description: The cycle has finished, but the safety lock prevents the door from opening.
+    visual_cues: [locked door light on, stuck door]
+    checks:
+      - Wait 2 to 3 minutes after the cycle ends to allow the thermal lock mechanism to cool and release.
+      - Check if there is still standing water in the drum; many machines will not unlock if the water level is high.
+  - id: washer_dead
+    name: Washing machine won't turn on
+    description: Pressing the power button does nothing; display panel remains completely blank.
+    visual_cues: [blank screen, no lights, dead panel]
+    checks:
+      - Verify the power cord is plugged securely into the wall socket and check if the household circuit breaker has tripped.
+
+questions:
+  - id: q_washer_water_status
+    name: Water Status
+    text: What is happening with the water inside the drum?
+    distinguishes: [will_not_drain, will_not_fill]
+    options:
+      - label: Water is trapped inside and won't drain out
+        supports: [will_not_drain]
+        rules_out: [will_not_fill]
+      - label: Machine starts, but water won't flow in at all
+        supports: [will_not_fill]
+        rules_out: [will_not_drain]
+      - label: Fills and drains normally
+        rules_out: [will_not_drain, will_not_fill]
+  - id: q_washer_physical_issue
+    name: Physical Behavior
+    text: Is the machine shaking violently, leaking, or won't open?
+    distinguishes: [excessive_vibration_shaking, leaking_washer, door_wont_unlock]
+    options:
+      - label: Shaking violently or walking during spin cycle
+        supports: [excessive_vibration_shaking]
+      - label: Water pooling on the floor / leaking
+        supports: [leaking_washer]
+      - label: Door is stuck and won't unlock after the cycle
+        supports: [door_wont_unlock]
+      - label: Operates smoothly without these issues
+        rules_out: [excessive_vibration_shaking, leaking_washer, door_wont_unlock]
+
+safety_rules:
+  - id: sr_washer_leak_electrical
+    triggers: [water near plug, puddle near power cord, shock hazard]
+    risk: stop
+    message: Turn off the power at the circuit breaker immediately if water is pooling near the electrical outlet or power cord to prevent severe electric shock.
+  - id: sr_forced_door
+    triggers: [force open door, breaking latch, jammed lock]
+    risk: high
+    message: Do not force the washing machine door open; doing so can snap the safety lock mechanism and cause sudden water flooding.

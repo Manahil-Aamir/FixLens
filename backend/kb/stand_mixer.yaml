@@ -1,0 +1,60 @@
+id: stand_mixer
+name: Stand Mixer
+components:
+  [
+    mixing bowl,
+    beater attachment,
+    tilt head,
+    speed control lever,
+    planetary shaft,
+    power cord,
+    base,
+  ]
+
+faults:
+  - id: attachments_hit_bowl
+    name: Beaters hitting the bowl
+    description: The paddle or whisk strikes the bottom or sides of the bowl during mixing.
+    visual_cues: [clinking noise, scraping bowl, uneven mix]
+    checks:
+      - Adjust the bowl clearance screw located in the hinge mechanism of the mixer head.
+      - Ensure the attachment is pushed fully onto the shaft and clicked into place.
+  - id: mixer_speed_issues
+    name: Speed control failure / Won't change speeds
+    description: Mixer runs only at one speed or fails to respond to the speed lever.
+    visual_cues: [stuck speed, sudden high speed]
+    checks:
+      - Unplug and check for batter buildup around the speed control plate or lever.
+  - id: oil_leak_mixer
+    name: Oil leaking from planetary shaft
+    description: A brownish or clear oily substance drips down into the mixing bowl.
+    visual_cues: [oil drip, brown stain, grease leak]
+    checks:
+      - Stop using the mixer; food-grade gear grease inside the planetary head has liquefied and leaked past the seal. Requires professional servicing.
+  - id: mixer_no_power
+    name: Mixer won't turn on
+    description: Speed lever is moved, but the motor does not engage.
+    visual_cues: [silent motor, no power]
+    checks:
+      - Check power cord and wall outlet.
+
+questions:
+  - id: q_mixer_operation
+    name: Operation Status
+    text: Does the motor run, and what issue are you experiencing?
+    distinguishes: [attachments_hit_bowl, oil_leak_mixer, mixer_no_power]
+    options:
+      - label: Beater attachments clink against the bowl
+        supports: [attachments_hit_bowl]
+      - label: Oily grease dripping from the overhead shaft
+        supports: [oil_leak_mixer]
+      - label: Mixer won't turn on at all
+        supports: [mixer_no_power]
+      - label: Mixes normally
+        rules_out: [attachments_hit_bowl, oil_leak_mixer, mixer_no_power]
+
+safety_rules:
+  - id: sr_moving_parts
+    triggers: [hair caught, fingers in bowl, spinning beaters]
+    risk: high
+    message: Keep hands, hair, and spatulas away from rotating beaters during operation to avoid injury. Always unplug before attaching tools.

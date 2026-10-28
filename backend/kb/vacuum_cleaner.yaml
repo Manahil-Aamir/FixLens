@@ -1,0 +1,66 @@
+id: vacuum_cleaner
+name: Vacuum Cleaner
+components:
+  [hose, wand, floor nozzle, dust cup/bag, filter, motor housing, power cord, roller brush]
+
+faults:
+  - id: loss_of_suction
+    name: Loss of suction or weak pickup
+    description: Vacuum runs, but picks up little dirt due to clogs or dirty filters.
+    visual_cues: [weak suction, full dust cup, clogged hose]
+    checks:
+      - Empty the dust cup or replace the vacuum bag if full.
+      - Wash or replace foam and HEPA filters.
+      - Inspect the hose and wand for trapped debris or blockages.
+  - id: brush_roll_stuck
+    name: Brush roll not spinning
+    description: The floor nozzle motor is running, but the agitator brush bar stays still.
+    visual_cues: [brush bar stopped, tangled hair, snapped belt]
+    checks:
+      - Unplug and check the brush roll for tightly wrapped hair and thread.
+      - Inspect the rubber drive belt beneath the vacuum base for wear or breakage.
+  - id: burning_smell_vacuum
+    name: Burning smell / Smoke from vacuum
+    description: A burning rubber smell occurs during operation, often accompanied by loss of brush rotation.
+    visual_cues: [burning smell, smoke, frayed belt]
+    checks:
+      - Immediately turn off and unplug the vacuum.
+      - Check if the brush roll is jammed, causing the drive belt to slip and burn.
+  - id: vacuum_dead
+    name: Vacuum won't turn on
+    description: Pressing the power switch does nothing; motor does not engage.
+    visual_cues: [no sound, dead motor]
+    checks:
+      - Check the power cord for breaks and test the wall outlet.
+      - Some vacuums have a thermal cutoff switch that trips if the unit overheats; let it cool for 30 minutes.
+
+questions:
+  - id: q_vacuum_power
+    name: Power Status
+    text: Does the vacuum motor turn on when switched?
+    distinguishes: [vacuum_dead, loss_of_suction]
+    options:
+      - label: Motor does not turn on at all
+        supports: [vacuum_dead]
+      - label: Motor runs, but weak suction
+        supports: [loss_of_suction]
+        rules_out: [vacuum_dead]
+      - label: Runs with good suction
+        rules_out: [vacuum_dead, loss_of_suction]
+  - id: q_vacuum_brush_smell
+    name: Brush and Smell
+    text: Is the brush roll spinning, or do you notice a burning smell?
+    distinguishes: [brush_roll_stuck, burning_smell_vacuum]
+    options:
+      - label: Brush roll is stuck or not spinning
+        supports: [brush_roll_stuck]
+      - label: Burning smell or smoke coming from base
+        supports: [burning_smell_vacuum]
+      - label: Brush spins normally without odors
+        rules_out: [brush_roll_stuck, burning_smell_vacuum]
+
+safety_rules:
+  - id: sr_vacuum_smoke
+    triggers: [smoke, burning smell, melted belt]
+    risk: stop
+    message: Turn off and unplug the vacuum immediately to prevent electrical fire or motor burnout.
