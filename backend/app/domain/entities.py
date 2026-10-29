@@ -94,6 +94,7 @@ class Step(BaseModel):
 class Plan(BaseModel):
     summary: str
     steps: list[Step]
+    escalate: bool = False
 
 
 class Diagnosis(BaseModel):

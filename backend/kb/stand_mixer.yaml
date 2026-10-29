@@ -42,7 +42,7 @@ questions:
   - id: q_mixer_operation
     name: Operation Status
     text: Does the motor run, and what issue are you experiencing?
-    distinguishes: [attachments_hit_bowl, oil_leak_mixer, mixer_no_power]
+    distinguishes: [attachments_hit_bowl, oil_leak_mixer, mixer_no_power, mixer_speed_issues]
     options:
       - label: Beater attachments clink against the bowl
         supports: [attachments_hit_bowl]
@@ -50,8 +50,19 @@ questions:
         supports: [oil_leak_mixer]
       - label: Mixer won't turn on at all
         supports: [mixer_no_power]
+      - label: Runs, but does not respond correctly to the speed lever
+        supports: [mixer_speed_issues]
       - label: Mixes normally
-        rules_out: [attachments_hit_bowl, oil_leak_mixer, mixer_no_power]
+        rules_out: [attachments_hit_bowl, oil_leak_mixer, mixer_no_power, mixer_speed_issues]
+  - id: q_mixer_residue
+    text: Do you see any oil or grease leaking from the head or around the attachment hub?
+    distinguishes: [oil_leak_mixer, attachments_hit_bowl]
+    options:
+      - label: Yes, there is oil or grease
+        supports: [oil_leak_mixer]
+        rules_out: [attachments_hit_bowl]
+      - label: No oil or grease
+        rules_out: [oil_leak_mixer]
 
 safety_rules:
   - id: sr_moving_parts

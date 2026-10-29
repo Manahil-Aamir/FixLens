@@ -82,6 +82,15 @@ questions:
         supports: [door_wont_unlock]
       - label: Operates smoothly without these issues
         rules_out: [excessive_vibration_shaking, leaking_washer, door_wont_unlock]
+  - id: q_washer_power
+    name: Power Status
+    text: Does the washing machine display or respond when you press the power button?
+    distinguishes: [washer_dead]
+    options:
+      - label: No display or response
+        supports: [washer_dead]
+      - label: The display turns on
+        rules_out: [washer_dead]
 
 safety_rules:
   - id: sr_washer_leak_electrical

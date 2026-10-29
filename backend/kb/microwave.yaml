@@ -63,6 +63,15 @@ questions:
         supports: [turntable_not_spinning]
       - label: Operates smoothly without sparks
         rules_out: [sparks_inside, turntable_not_spinning]
+  - id: q_microwave_door
+    name: Door Latch
+    text: Does the microwave door close and latch securely?
+    distinguishes: [door_wont_close]
+    options:
+      - label: No, the door will not latch securely
+        supports: [door_wont_close]
+      - label: Yes, the door latches normally
+        rules_out: [door_wont_close]
 
 safety_rules:
   - id: sr_high_voltage

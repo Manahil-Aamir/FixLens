@@ -52,6 +52,15 @@ questions:
         supports: [leaking_reservoir]
       - label: No leaks
         rules_out: [leaking_reservoir]
+  - id: q_coffee_power
+    name: Power Status
+    text: Does the coffee maker power on when you press the power button?
+    distinguishes: [coffee_maker_dead]
+    options:
+      - label: No lights or response
+        supports: [coffee_maker_dead]
+      - label: It powers on
+        rules_out: [coffee_maker_dead]
 
 safety_rules:
   - id: sr_hot_surface
