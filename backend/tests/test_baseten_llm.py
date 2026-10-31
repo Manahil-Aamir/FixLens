@@ -6,6 +6,7 @@ from PIL import Image
 
 from app.application.hypothesis_ranker import rank
 from app.domain.entities import Observation
+from app.domain.errors import InvalidImage
 from app.infrastructure.baseten_llm import BasetenVisionLLM, LLMOutputError
 from app.infrastructure.yaml_kb import YamlKnowledgeBase
 
@@ -77,3 +78,8 @@ def test_write_plan_orders_steps():
     plan = llm.write_plan(obs, hyps, [], kettle)
     assert [s.order for s in plan.steps] == [1, 2]
     assert plan.steps[1].stop_if == "cracks"
+    
+def test_bad_image_raises_invalid_image():
+    llm, _ = _llm([])
+    with pytest.raises(InvalidImage):
+        llm.identify(b"not an image", "image/jpeg", IDS)

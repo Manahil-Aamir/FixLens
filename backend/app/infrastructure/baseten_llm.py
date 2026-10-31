@@ -4,7 +4,8 @@ import logging
 import re
 from typing import TypeVar
 
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
+from app.domain.errors import InvalidImage, LLMError, LLMUnavailable
 from pydantic import BaseModel, Field, ValidationError
 
 from app.domain.entities import (
@@ -51,7 +52,7 @@ JSON schema:
 {"summary": string, "escalate": boolean, "steps": [{"instruction": string, "risk": string, "stop_if": string or null}]}"""
 
 
-class LLMOutputError(RuntimeError):
+class LLMOutputError(LLMError):
     """The model did not return usable output after retries."""
 
 
@@ -108,9 +109,12 @@ class BasetenVisionLLM:
         max_tokens = self._max_tokens
         last_error = "unknown"
         for attempt in range(1, self._attempts + 1):
-            resp = self._client.chat.completions.create(
-                model=self._model, messages=messages, max_tokens=max_tokens
-            )
+            try:
+                resp = self._client.chat.completions.create(
+                    model=self._model, messages=messages, max_tokens=max_tokens
+                )
+            except OpenAIError as e:
+                raise LLMUnavailable(f"Model service error: {e}") from e
             choice = resp.choices[0]
             content = (choice.message.content or "").strip()
             log.debug("attempt %d finish=%s raw=%r", attempt, choice.finish_reason, content[:2000])
@@ -142,7 +146,10 @@ class BasetenVisionLLM:
         known_objects: list[str],
         cue_hints: list[str] | None = None,
     ) -> Observation:
-        jpeg, out_mime = prepare_image(image, self._max_px)
+        try:
+            jpeg, out_mime = prepare_image(image, self._max_px)
+        except ValueError as e:
+            raise InvalidImage(str(e)) from e
         b64 = base64.b64encode(jpeg).decode()
 
         prompt = IDENTIFY_USER.format(

@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     max_tokens: int = 3000
     max_image_px: int = 1024
     kb_dir: str = "kb"
+    db_path: str = str(BASE_DIR / "fixlens.db")
     ask_threshold: float = 0.6   # ask follow-ups only while the top hypothesis is below this
     max_questions: int = 2
 

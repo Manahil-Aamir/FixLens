@@ -4,7 +4,7 @@ import sys
 from app.application import hypothesis_ranker as hr
 from app.application import safety_policy as sp
 from app.config import get_settings
-from app.domain.entities import Answer
+from app.domain.entities import Answer, Plan
 from app.infrastructure.baseten_llm import BasetenVisionLLM
 from app.infrastructure.yaml_kb import YamlKnowledgeBase
 
@@ -61,9 +61,12 @@ def main(path: str) -> None:
     if inconclusive:
         print("\nThe answers do not point to one clear cause.")
 
-    # 3. Write the plan, then let the safety rules override it
-    plan = llm.write_plan(obs, hyps, answers, obj)
-    plan = sp.apply(plan, sp.evaluate(obs, answers, obj))
+    # 3. Safety first: if a STOP rule fired, there is no point asking the model for a plan
+    triggered = sp.evaluate(obs, answers, obj)
+    if any(r.risk.value == "stop" for r in triggered):
+        plan = sp.apply(Plan(summary="", steps=[]), triggered)
+    else:
+        plan = sp.apply(llm.write_plan(obs, hyps, answers, obj), triggered)
     if inconclusive:
         plan.escalate = True
 

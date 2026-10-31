@@ -65,24 +65,30 @@ def _present(trigger: str, text: str, check_negation: bool) -> bool:
         start = i + len(trigger)
     return False
 
-
 def evaluate(
     observation: Observation, answers: list[Answer], kb: ObjectKnowledge
 ) -> list[SafetyRule]:
     """Return every safety rule triggered by the photo analysis or the user's answers."""
     photo_text = " ".join(observation.visible_issues).lower()
     answer_text = " ".join(a.value for a in answers).lower()
-    triggered: dict[str, SafetyRule] = {}
-    for rule in [*GLOBAL_RULES, *kb.safety_rules]:
-        for t in rule.triggers:
-            t = t.lower()
+    triggered: list[SafetyRule] = []
+    used_triggers: set[str] = set()
+
+    # Appliance-specific rules go first because they are more precise than the global ones.
+    # A rule is skipped when it shares triggers with one that already fired.
+    for rule in [*kb.safety_rules, *GLOBAL_RULES]:
+        triggers = {t.lower() for t in rule.triggers}
+        if triggers & used_triggers:
+            continue
+        for t in triggers:
             # Photo text comes from the model, so check for negation there.
             # Answers are the user's chosen labels, so match them directly.
             if _present(t, photo_text, True) or _present(t, answer_text, False):
-                triggered[rule.id] = rule
+                triggered.append(rule)
+                used_triggers |= triggers
                 break
-    return sorted(triggered.values(), key=lambda r: -_RANK[r.risk])
 
+    return sorted(triggered, key=lambda r: -_RANK[r.risk])
 
 def apply(plan: Plan, triggered: list[SafetyRule]) -> Plan:
     """Enforce safety on the model's plan. The result can only be safer than the input."""

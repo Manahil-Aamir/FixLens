@@ -17,6 +17,7 @@ class Risk(str, Enum):
 class DiagnosisStatus(str, Enum):
     NEEDS_ANSWERS = "needs_answers"
     COMPLETE = "complete"
+    UNSUPPORTED = "unsupported"
 
 
 # ---------- Knowledge base (loaded from YAML) ----------
@@ -105,4 +106,5 @@ class Diagnosis(BaseModel):
     answers: list[Answer] = []
     hypotheses: list[Hypothesis] = []
     plan: Plan | None = None
+    notice: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -28,3 +28,11 @@ def test_forbidden_instruction_removed():
     out = sp.apply(_plan(("Remove the back panel and check the wiring", Risk.MEDIUM),
                          ("Check the plug fuse", Risk.LOW)), [])
     assert [s.instruction for s in out.steps] == ["Check the plug fuse"]
+    
+
+def test_overlapping_rules_are_deduplicated():
+    obs = Observation(object_id="electric_kettle")
+    answers = [Answer(question_id="q_smell", value="Yes, burning smell or sparks")]
+    ids = [r.id for r in sp.evaluate(obs, answers, kb)]
+    assert "sr_burning" in ids
+    assert "g_fire" not in ids
