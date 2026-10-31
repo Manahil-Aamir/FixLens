@@ -32,6 +32,7 @@ def _handler(status: int, message: str | None):
 
 
 def create_app(container: Container | None = None) -> FastAPI:
+    logging.basicConfig(level=logging.INFO)
     app = FastAPI(title="FixLens API")
     app.state.container = container or build_container(get_settings())
     app.add_middleware(

@@ -1,10 +1,18 @@
 import re
 
 from app.domain.entities import (
-    Answer, ObjectKnowledge, Observation, Plan, Risk, SafetyRule, Step,
+    Answer, ObjectKnowledge, Observation, Plan, Question, Risk, SafetyRule, Step,
 )
 
 _RANK = {Risk.LOW: 0, Risk.MEDIUM: 1, Risk.HIGH: 2, Risk.STOP: 3}
+
+CONFIRM_QUESTION_ID = "q_safety_check"
+CONFIRM_YES = "Yes, I notice one of these"
+CONFIRM_NO = "No, none of these"
+
+# Words a vision model often uses for normal wear (an iron's soleplate, a toaster's browning,
+# a stained kettle base). Seen in a photo alone they justify a question, not a STOP.
+PHOTO_NEEDS_CONFIRMATION = ("burn mark", "scorch", "melted")
 
 # Apply to every appliance, on top of each KB file's own rules.
 GLOBAL_RULES = [
@@ -40,18 +48,19 @@ GLOBAL_RULES = [
     ),
 ]
 
-# Steps matching these are removed, however the model words them.
+# Steps matching these are removed, unless the step is telling the user NOT to do it.
 FORBIDDEN_INSTRUCTIONS = [
-    r"\bopen (up )?the (casing|housing|body|unit|cabinet)\b",
-    r"\bremove (the )?(back|rear|side|cover|panel|casing|housing)\b",
-    r"\bunscrew\b",
+    r"\bopen(s|ed|ing)? (up )?the (casing|housing|body|unit|cabinet)\b",
+    r"\bremov(e|es|ed|ing) (the )?(back|rear|side|cover|panel|casing|housing)\b",
+    r"\bunscrew(s|ed|ing)?\b",
     r"\bwhile (it is |it's )?plugged in\b",
-    r"\bbypass\b",
+    r"\bbypass(es|ed|ing)?\b",
     r"\bjump(er)?\b|\bshort[- ]?(circuit|out)\b",
     r"\bcapacitor\b",
-    r"\bsoldering?\b",
+    r"\bsolder(s|ed|ing)?\b",
 ]
 _FORBIDDEN = re.compile("|".join(FORBIDDEN_INSTRUCTIONS), re.IGNORECASE)
+_PROHIBITION = re.compile(r"\b(without|do not|don't|never|avoid|not)\b[^.;]{0,40}$", re.IGNORECASE)
 
 # "no burning smell" should not trigger "burning smell".
 _NEGATION = re.compile(r"\b(no|not|without|free of|none|isn't|doesn't)\b[^.;,]{0,20}$")
@@ -65,12 +74,52 @@ def _present(trigger: str, text: str, check_negation: bool) -> bool:
         start = i + len(trigger)
     return False
 
+
+def _ambiguous(trigger: str) -> bool:
+    return any(p in trigger for p in PHOTO_NEEDS_CONFIRMATION)
+
+
+def violates_policy(instruction: str) -> bool:
+    """True for 'Unscrew the cover'; False for 'Without unscrewing anything, look inside'."""
+    for m in _FORBIDDEN.finditer(instruction):
+        if not _PROHIBITION.search(instruction[max(0, m.start() - 60):m.start()]):
+            return True
+    return False
+
+
+# ---------- heat-damage confirmation ----------
+
+def needs_heat_confirmation(observation: Observation, answers: list[Answer]) -> bool:
+    """Photo shows burn-like words and the user has not been asked about them yet."""
+    if any(a.question_id == CONFIRM_QUESTION_ID for a in answers):
+        return False
+    photo_text = " ".join(observation.visible_issues).lower()
+    return any(_present(t, photo_text, True) for t in PHOTO_NEEDS_CONFIRMATION)
+
+
+def heat_confirmation_question() -> Question:
+    return Question(
+        id=CONFIRM_QUESTION_ID,
+        text=(
+            "The photo shows what may be burn or heat marks. Do you notice any of these: "
+            "a burning smell, sparks, smoke, melted plastic, or a damaged cord or plug?"
+        ),
+        options=[CONFIRM_YES, CONFIRM_NO],
+    )
+
+
 def evaluate(
     observation: Observation, answers: list[Answer], kb: ObjectKnowledge
 ) -> list[SafetyRule]:
     """Return every safety rule triggered by the photo analysis or the user's answers."""
     photo_text = " ".join(observation.visible_issues).lower()
-    answer_text = " ".join(a.value for a in answers).lower()
+    answer_text = " ".join(
+        a.value for a in answers if a.question_id != CONFIRM_QUESTION_ID
+    ).lower()
+    confirmed = any(
+        a.question_id == CONFIRM_QUESTION_ID and a.value == CONFIRM_YES for a in answers
+    )
+
     triggered: list[SafetyRule] = []
     used_triggers: set[str] = set()
 
@@ -81,18 +130,20 @@ def evaluate(
         if triggers & used_triggers:
             continue
         for t in triggers:
-            # Photo text comes from the model, so check for negation there.
+            # Ambiguous heat words in the photo only count once the user confirmed them.
+            photo_hit = (confirmed or not _ambiguous(t)) and _present(t, photo_text, True)
             # Answers are the user's chosen labels, so match them directly.
-            if _present(t, photo_text, True) or _present(t, answer_text, False):
+            if photo_hit or _present(t, answer_text, False):
                 triggered.append(rule)
                 used_triggers |= triggers
                 break
 
     return sorted(triggered, key=lambda r: -_RANK[r.risk])
 
+
 def apply(plan: Plan, triggered: list[SafetyRule]) -> Plan:
     """Enforce safety on the model's plan. The result can only be safer than the input."""
-    steps = [s for s in plan.steps if not _FORBIDDEN.search(s.instruction)]
+    steps = [s for s in plan.steps if not violates_policy(s.instruction)]
     worst = triggered[0].risk if triggered else Risk.LOW
 
     if worst == Risk.STOP:

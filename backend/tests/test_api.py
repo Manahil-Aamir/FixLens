@@ -68,15 +68,7 @@ def test_question_flow_ends_with_a_plan(tmp_path):
     assert client.get(f"/diagnoses/{body['id']}").json()["status"] == "complete"
 
 
-def test_stop_from_photo_skips_questions_and_model_plan(tmp_path):
-    obs = Observation(object_id="electric_kettle", visible_issues=["burn mark"])
-    client, llm = _client(tmp_path, obs)
-    body = _upload(client).json()
-    assert body["status"] == "complete"
-    assert body["questions"] == []
-    assert body["plan"]["escalate"] is True
-    assert all(s["risk"] == "stop" for s in body["plan"]["steps"])
-    assert llm.plan_calls == 0
+
 
 
 def test_unknown_object_is_unsupported(tmp_path):
@@ -98,8 +90,44 @@ def test_error_cases(tmp_path):
                        json={"answers": [{"question_id": "a", "value": "b"}]}).status_code == 404
 
 
-def test_answering_a_finished_diagnosis_is_a_conflict(tmp_path):
+def test_frayed_cord_in_photo_stops_immediately(tmp_path):
+    obs = Observation(object_id="electric_kettle", visible_issues=["frayed cord"])
+    client, llm = _client(tmp_path, obs)
+    body = _upload(client).json()
+    assert body["status"] == "complete"
+    assert body["questions"] == []
+    assert body["plan"]["escalate"] is True
+    assert all(s["risk"] == "stop" for s in body["plan"]["steps"])
+    assert llm.plan_calls == 0
+
+
+def test_heat_marks_in_photo_ask_for_confirmation(tmp_path):
     obs = Observation(object_id="electric_kettle", visible_issues=["burn mark"])
+    client, llm = _client(tmp_path, obs)
+    body = _upload(client).json()
+    assert body["status"] == "needs_answers"
+    assert [q["id"] for q in body["questions"]] == ["q_safety_check"]
+    assert llm.plan_calls == 0
+
+    yes = client.post(f"/diagnoses/{body['id']}/answers", json={"answers": [
+        {"question_id": "q_safety_check", "value": "Yes, I notice one of these"}]}).json()
+    assert yes["status"] == "complete"
+    assert all(s["risk"] == "stop" for s in yes["plan"]["steps"])
+    assert llm.plan_calls == 0
+
+
+def test_denying_heat_damage_continues_normally(tmp_path):
+    obs = Observation(object_id="electric_kettle", visible_issues=["burn mark"])
+    client, _ = _client(tmp_path, obs)
+    body = _upload(client).json()
+    no = client.post(f"/diagnoses/{body['id']}/answers", json={"answers": [
+        {"question_id": "q_safety_check", "value": "No, none of these"}]}).json()
+    assert no["status"] == "needs_answers"
+    assert "q_safety_check" not in [q["id"] for q in no["questions"]]
+
+
+def test_answering_a_finished_diagnosis_is_a_conflict(tmp_path):
+    obs = Observation(object_id="electric_kettle", visible_issues=["frayed cord"])
     client, _ = _client(tmp_path, obs)
     body = _upload(client).json()
     resp = client.post(f"/diagnoses/{body['id']}/answers",

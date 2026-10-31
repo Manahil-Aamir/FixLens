@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import re
+import time
 from typing import TypeVar
 
 from openai import OpenAI, OpenAIError
@@ -93,7 +94,7 @@ class BasetenVisionLLM:
         max_image_px: int = 1024,
         token_cap: int = 6000,
         attempts: int = 3,
-        timeout: float = 90.0,
+        timeout: float = 30.0,
         client: OpenAI | None = None,
     ):
         self._client = client or OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
@@ -109,15 +110,26 @@ class BasetenVisionLLM:
         max_tokens = self._max_tokens
         last_error = "unknown"
         for attempt in range(1, self._attempts + 1):
+            started = time.perf_counter()
             try:
                 resp = self._client.chat.completions.create(
                     model=self._model, messages=messages, max_tokens=max_tokens
                 )
             except OpenAIError as e:
+                log.warning("model call failed after %.1fs: %s", time.perf_counter() - started, e)
                 raise LLMUnavailable(f"Model service error: {e}") from e
+
+            usage = resp.usage
+            details = getattr(usage, "completion_tokens_details", None)
+            log.info(
+                "model call %.1fs completion_tokens=%s reasoning_tokens=%s",
+                time.perf_counter() - started,
+                getattr(usage, "completion_tokens", "?"),
+                getattr(details, "reasoning_tokens", "?"),
+            )
+
             choice = resp.choices[0]
             content = (choice.message.content or "").strip()
-            log.debug("attempt %d finish=%s raw=%r", attempt, choice.finish_reason, content[:2000])
 
             if not content:
                 # Reasoning models can spend the whole budget thinking. Give them more room.

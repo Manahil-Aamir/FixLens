@@ -15,13 +15,20 @@ def advance(
     triggered = sp.evaluate(d.observation, d.answers, obj)
     must_stop = any(r.risk == Risk.STOP for r in triggered)
 
-    # Ask more only while unsure, and never when safety already says stop.
-    if not must_stop and hr.needs_more_info(d.hypotheses, ask_threshold):
-        questions = hr.select_questions(d.hypotheses, d.answers, obj, max_questions)
-        if questions:
-            d.questions, d.plan = questions, None
+    if not must_stop:
+        # Burn-like words in the photo alone are not enough to stop: confirm with the user first.
+        if sp.needs_heat_confirmation(d.observation, d.answers):
+            d.questions, d.plan = [sp.heat_confirmation_question()], None
             d.status = DiagnosisStatus.NEEDS_ANSWERS
             return d
+
+        # Ask more only while unsure.
+        if hr.needs_more_info(d.hypotheses, ask_threshold):
+            questions = hr.select_questions(d.hypotheses, d.answers, obj, max_questions)
+            if questions:
+                d.questions, d.plan = questions, None
+                d.status = DiagnosisStatus.NEEDS_ANSWERS
+                return d
 
     d.questions = []
     base = Plan(summary="", steps=[]) if must_stop else llm.write_plan(

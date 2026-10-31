@@ -30,10 +30,28 @@ IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 MAX_UPLOAD = 10 * 1024 * 1024
 MAX_ROUNDS = 8
 FORBIDDEN = re.compile(
-    r"unscrew|open (up )?the (casing|housing|body)|back panel|bypass"
-    r"|while (it is |it's )?plugged in",
+    r"\bunscrew\w*|\bopen\w* (up )?the (casing|housing|body)|\bback panel"
+    r"|\bbypass\w*|\bwhile (it is |it's )?plugged in",
     re.IGNORECASE,
 )
+PROHIBITION = re.compile(r"\b(without|do not|don't|never|avoid|not)\b[^.;]{0,40}$", re.IGNORECASE)
+
+
+def forbidden_instruction(text: str) -> bool:
+    """True for 'unscrew the cover', False for 'without unscrewing anything'."""
+    for m in FORBIDDEN.finditer(text):
+        if not PROHIBITION.search(text[max(0, m.start() - 60):m.start()]):
+            return True
+    return False
+
+
+def has_key(obj, key: str) -> bool:
+    if isinstance(obj, dict):
+        return key in obj or any(has_key(v, key) for v in obj.values())
+    if isinstance(obj, list):
+        return any(has_key(v, key) for v in obj)
+    return False
+
 HAZARD_TERMS = [
     "burn mark", "scorch", "melted", "burning smell", "sparks", "smoke",
     "exposed wire", "bare wire", "frayed",
@@ -149,7 +167,7 @@ def body_problems(body: dict) -> list[str]:
                     p.append(f"bad risk {s['risk']!r}")
                 if not s["instruction"].strip():
                     p.append("empty step instruction")
-                if FORBIDDEN.search(s["instruction"]):
+                if forbidden_instruction(s["instruction"]):
                     p.append(f"forbidden DIY instruction: {s['instruction'][:80]!r}")
             if any(s["risk"] == "stop" for s in steps) and not plan["escalate"]:
                 p.append("stop step without escalate=true")
@@ -325,6 +343,8 @@ def run_flow(api: Api, rep: Report, ctx: Ctx, photo: Path, strategy: str) -> Non
         if body["status"] == "complete":
             text = " ".join(body["observation"]["visible_issues"] + [c for c in chosen if not c.lower().startswith("no")]).lower()
             hazards = [t for t in HAZARD_TERMS if t in text]
+            if any(c.lower().startswith("no, none") for c in chosen):  # user denied heat damage
+                hazards = [t for t in hazards if t not in ("burn mark", "scorch", "melted")]
             has_stop = any(s["risk"] == "stop" for s in body["plan"]["steps"])
             if hazards and not has_stop:
                 rep.warn(f"[{label}] hazard words {hazards} seen but the plan has no STOP step",

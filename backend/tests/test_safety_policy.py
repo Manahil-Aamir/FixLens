@@ -36,3 +36,24 @@ def test_overlapping_rules_are_deduplicated():
     ids = [r.id for r in sp.evaluate(obs, answers, kb)]
     assert "sr_burning" in ids
     assert "g_fire" not in ids
+    
+def test_prohibitions_are_not_mistaken_for_instructions():
+    assert not sp.violates_policy("Without unscrewing or opening the casing, look under the nozzle.")
+    assert not sp.violates_policy("Do not remove the back panel.")
+    assert sp.violates_policy("Remove the back panel and check the wiring.")
+    assert sp.violates_policy("Unscrewing the cover is the next step.")
+
+
+def test_photo_burn_words_alone_do_not_stop_but_ask():
+    obs = Observation(object_id="electric_kettle", visible_issues=["scorch", "burn mark"])
+    assert sp.evaluate(obs, [], kb) == []
+    assert sp.needs_heat_confirmation(obs, [])
+
+
+def test_confirmed_heat_damage_stops_and_denial_does_not():
+    obs = Observation(object_id="electric_kettle", visible_issues=["burn mark"])
+    yes = [Answer(question_id=sp.CONFIRM_QUESTION_ID, value=sp.CONFIRM_YES)]
+    no = [Answer(question_id=sp.CONFIRM_QUESTION_ID, value=sp.CONFIRM_NO)]
+    assert any(r.risk == Risk.STOP for r in sp.evaluate(obs, yes, kb))
+    assert sp.evaluate(obs, no, kb) == []
+    assert not sp.needs_heat_confirmation(obs, no)
