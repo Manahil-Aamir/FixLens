@@ -48,6 +48,7 @@ PLAN_RULES = """Rules:
 - risk is one of: "low", "medium", "high", "stop".
 - stop_if: an optional short warning sign that means the user should stop and call a professional.
 - Set escalate to true if a professional is probably needed.
+- Never mention percentages, probabilities or scores.
 
 JSON schema:
 {"summary": string, "escalate": boolean, "steps": [{"instruction": string, "risk": string, "stop_if": string or null}]}"""
@@ -119,7 +120,7 @@ class BasetenVisionLLM:
                 log.warning("model call failed after %.1fs: %s", time.perf_counter() - started, e)
                 raise LLMUnavailable(f"Model service error: {e}") from e
 
-            usage = resp.usage
+            usage = getattr(resp, "usage", None)
             details = getattr(usage, "completion_tokens_details", None)
             log.info(
                 "model call %.1fs completion_tokens=%s reasoning_tokens=%s",
@@ -207,11 +208,12 @@ class BasetenVisionLLM:
                 q = questions.get(a.question_id)
                 lines.append(f"- {q.text if q else a.question_id} -> {a.value}")
         lines.append("Candidate faults, most likely first:")
-        for h in hypotheses[:3]:
+        for i, h in enumerate(hypotheses[:3]):
             f = faults.get(h.fault_id)
             if not f:
                 continue
-            lines.append(f"- {f.name} (likelihood {h.likelihood:.0%}): {f.description}")
+            tag = "most likely" if i == 0 else "also possible"
+            lines.append(f"- {f.name} ({tag}): {f.description}")
             for c in f.checks:
                 lines.append(f"    safe check: {c}")
 

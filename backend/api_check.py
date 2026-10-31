@@ -29,12 +29,21 @@ EXPECTED_OBJECTS = {
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 MAX_UPLOAD = 10 * 1024 * 1024
 MAX_ROUNDS = 8
+
+# Instructions we never want in a plan, unless the step is telling the user NOT to do it.
 FORBIDDEN = re.compile(
     r"\bunscrew\w*|\bopen\w* (up )?the (casing|housing|body)|\bback panel"
     r"|\bbypass\w*|\bwhile (it is |it's )?plugged in",
     re.IGNORECASE,
 )
 PROHIBITION = re.compile(r"\b(without|do not|don't|never|avoid|not)\b[^.;]{0,40}$", re.IGNORECASE)
+PERCENT = re.compile(r"\d+\s?%")
+
+HAZARD_TERMS = [
+    "burn mark", "scorch", "melted", "burning smell", "sparks", "smoke",
+    "exposed wire", "bare wire", "frayed",
+]
+AMBIGUOUS_HEAT = ("burn mark", "scorch", "melted")  # only count after the user confirms them
 
 
 def forbidden_instruction(text: str) -> bool:
@@ -46,16 +55,12 @@ def forbidden_instruction(text: str) -> bool:
 
 
 def has_key(obj, key: str) -> bool:
+    """True if any dict anywhere inside obj has this key (not just the word in some text)."""
     if isinstance(obj, dict):
         return key in obj or any(has_key(v, key) for v in obj.values())
     if isinstance(obj, list):
         return any(has_key(v, key) for v in obj)
     return False
-
-HAZARD_TERMS = [
-    "burn mark", "scorch", "melted", "burning smell", "sparks", "smoke",
-    "exposed wire", "bare wire", "frayed",
-]
 
 
 class Report:
@@ -123,8 +128,8 @@ def body_problems(body: dict) -> list[str]:
         return [f"missing keys {sorted(missing)}"]
 
     p: list[str] = []
-    if "likelihood" in json.dumps(body):
-        p.append("raw likelihood numbers leaked into the response")
+    if has_key(body, "likelihood"):
+        p.append("a raw 'likelihood' field leaked into the response")
     status = body["status"]
     if status not in STATUSES:
         return p + [f"unknown status {status!r}"]
@@ -162,6 +167,8 @@ def body_problems(body: dict) -> list[str]:
             orders = [s["order"] for s in steps]
             if orders != list(range(1, len(orders) + 1)):
                 p.append(f"step orders are {orders}")
+            if PERCENT.search(plan.get("summary", "")):
+                p.append(f"percentage in plan summary: {plan['summary'][:60]!r}")
             for s in steps:
                 if s["risk"] not in RISKS:
                     p.append(f"bad risk {s['risk']!r}")
@@ -169,6 +176,8 @@ def body_problems(body: dict) -> list[str]:
                     p.append("empty step instruction")
                 if forbidden_instruction(s["instruction"]):
                     p.append(f"forbidden DIY instruction: {s['instruction'][:80]!r}")
+                if PERCENT.search(s["instruction"]):
+                    p.append(f"percentage in plan text: {s['instruction'][:60]!r}")
             if any(s["risk"] == "stop" for s in steps) and not plan["escalate"]:
                 p.append("stop step without escalate=true")
         hyps = body["hypotheses"]
@@ -341,10 +350,14 @@ def run_flow(api: Api, rep: Report, ctx: Ctx, photo: Path, strategy: str) -> Non
                   g.status_code == 200 and safe_json(g) == body, f"{g.status_code}")
 
         if body["status"] == "complete":
-            text = " ".join(body["observation"]["visible_issues"] + [c for c in chosen if not c.lower().startswith("no")]).lower()
+            text = " ".join(
+                body["observation"]["visible_issues"]
+                + [c for c in chosen if not c.lower().startswith("no")]
+            ).lower()
             hazards = [t for t in HAZARD_TERMS if t in text]
-            if any(c.lower().startswith("no, none") for c in chosen):  # user denied heat damage
-                hazards = [t for t in hazards if t not in ("burn mark", "scorch", "melted")]
+            denied = any(c.lower().startswith("no, none") for c in chosen)
+            if denied:  # the user said none of the heat signs apply, so photo words alone don't count
+                hazards = [t for t in hazards if t not in AMBIGUOUS_HEAT]
             has_stop = any(s["risk"] == "stop" for s in body["plan"]["steps"])
             if hazards and not has_stop:
                 rep.warn(f"[{label}] hazard words {hazards} seen but the plan has no STOP step",
