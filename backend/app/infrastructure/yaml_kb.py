@@ -48,3 +48,11 @@ class YamlKnowledgeBase:
 
     def get(self, object_id: str) -> ObjectKnowledge | None:
         return self._objects.get(object_id)
+    
+    def all_visual_cues(self) -> list[str]:
+        seen: dict[str, None] = {}
+        for obj in self._objects.values():
+            for fault in obj.faults:
+                for cue in fault.visual_cues:
+                    seen[cue.lower()] = None
+        return sorted(seen)

@@ -54,3 +54,7 @@ def select_questions(
         Question(id=q.id, text=q.text, options=[o.label for o in q.options])
         for q in candidates[:limit]
     ]
+    
+def is_inconclusive(hyps: list[Hypothesis], margin: float = 0.1) -> bool:
+    """Top two hypotheses too close to call after questions are exhausted."""
+    return len(hyps) > 1 and hyps[0].likelihood - hyps[1].likelihood < margin

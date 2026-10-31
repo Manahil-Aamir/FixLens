@@ -30,6 +30,7 @@ JSON schema:
 Rules:
 - components: parts you can actually see, short names.
 - visible_issues: short plain phrases for visible damage or abnormal conditions, e.g. "white deposit inside", "frayed cord", "water stain", "cracked lid", "burn mark". If nothing looks wrong, return an empty list. Never write phrases like "no damage".
+- Where one of these phrases fits what you see, use it exactly; otherwise use your own short phrase: {cues}
 - confidence: how sure you are about object_id."""
 
 PLAN_SYSTEM = (
@@ -134,13 +135,24 @@ class BasetenVisionLLM:
 
     # ---------- VisionLLM port ----------
 
-    def identify(self, image: bytes, mime: str, known_objects: list[str]) -> Observation:
+    def identify(
+        self,
+        image: bytes,
+        mime: str,
+        known_objects: list[str],
+        cue_hints: list[str] | None = None,
+    ) -> Observation:
         jpeg, out_mime = prepare_image(image, self._max_px)
         b64 = base64.b64encode(jpeg).decode()
+
+        prompt = IDENTIFY_USER.format(
+            objects=", ".join(known_objects),
+            cues=", ".join(cue_hints or []) or "n/a",
+        )
         messages = [
             {"role": "system", "content": IDENTIFY_SYSTEM},
             {"role": "user", "content": [
-                {"type": "text", "text": IDENTIFY_USER.format(objects=", ".join(known_objects))},
+                {"type": "text", "text": prompt},
                 {"type": "image_url", "image_url": {"url": f"data:{out_mime};base64,{b64}"}},
             ]},
         ]
