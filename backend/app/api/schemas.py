@@ -45,6 +45,7 @@ class ObservationOut(BaseModel):
     object_id: str
     components: list[str]
     visible_issues: list[str]
+    note: str = ""
 
 
 class DiagnosisOut(BaseModel):
@@ -80,6 +81,7 @@ def to_response(d: Diagnosis, kb: KnowledgeBase) -> DiagnosisOut:
             object_id=d.observation.object_id,
             components=d.observation.components,
             visible_issues=d.observation.visible_issues,
+            note=d.observation.note,
         ),
         questions=[QuestionOut(id=q.id, text=q.text, options=q.options) for q in d.questions],
         hypotheses=hypotheses,

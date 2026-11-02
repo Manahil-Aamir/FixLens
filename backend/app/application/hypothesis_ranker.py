@@ -6,7 +6,7 @@ RULE_OUT_FACTOR = 0.05
 
 
 def rank(observation: Observation, answers: list[Answer], kb: ObjectKnowledge) -> list[Hypothesis]:
-    text = " ".join(observation.visible_issues).lower()
+    text = " ".join([*observation.visible_issues, observation.note]).lower()
     scores: dict[str, float] = {}
     reasons: dict[str, list[str]] = {f.id: [] for f in kb.faults}
 

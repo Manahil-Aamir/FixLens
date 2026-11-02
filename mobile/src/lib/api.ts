@@ -1,4 +1,5 @@
 import type { Diagnosis, Supported } from './types'
+import { File } from 'expo-file-system'
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.10:8000'
 const TIMEOUT_MS = 60_000
@@ -30,10 +31,15 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     return data as T
   } catch (e: any) {
     if (e instanceof ApiError) throw e
+    console.warn('API request failed:', path, e?.name, e?.message)
     if (e?.name === 'AbortError') {
       throw new ApiError('The server took too long to answer. Please try again.')
     }
-    throw new ApiError("Can't reach the server. Check your connection and try again.")
+    throw new ApiError(
+      __DEV__
+        ? `Can't reach the server (${API_URL}). ${e?.message ?? ''}`
+        : "Can't reach the server. Check your connection and try again.",
+    )
   } finally {
     clearTimeout(timer)
   }
@@ -43,10 +49,14 @@ export function listObjects(): Promise<Supported[]> {
   return request<Supported[]>('/objects')
 }
 
-export function createDiagnosis(uri: string, mimeType?: string | null): Promise<Diagnosis> {
+export function createDiagnosis(
+  uri: string,
+  kind: 'image' | 'video' = 'image',
+): Promise<Diagnosis> {
   const form = new FormData()
-  // React Native accepts a {uri, name, type} object as a file part.
-  form.append('image', { uri, name: 'photo.jpg', type: mimeType ?? 'image/jpeg' } as any)
+  const name = kind === 'video' ? 'clip.mp4' : 'photo.jpg'
+  // The form field name matches the backend: "image" or "video".
+  form.append(kind, new File(uri) as unknown as Blob, name)
   return request<Diagnosis>('/diagnoses', { method: 'POST', body: form })
 }
 

@@ -1,11 +1,13 @@
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
 from app.api.schemas import AnswersIn, DiagnosisOut, to_response
 from app.domain.entities import Answer
 from app.domain.errors import DiagnosisNotFound
 
 router = APIRouter()
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_VIDEO_BYTES = 120 * 1024 * 1024
+MAX_NOTE_CHARS = 500
 
 
 def _c(request: Request):
@@ -24,14 +26,31 @@ def list_objects(request: Request):
 
 
 @router.post("/diagnoses", response_model=DiagnosisOut)
-def create_diagnosis(request: Request, image: UploadFile = File(...)):
-    data = image.file.read(MAX_UPLOAD_BYTES + 1)
+def create_diagnosis(
+    request: Request,
+    image: UploadFile | None = File(None),
+    video: UploadFile | None = File(None),
+    note: str | None = Form(None),
+):
+    if image is None and video is None:
+        raise HTTPException(422, "Send an 'image' or a 'video' file.")
+    note = (note or "").strip() or None
+    if note and len(note) > MAX_NOTE_CHARS:
+        raise HTTPException(422, f"The description is too long (max {MAX_NOTE_CHARS} characters).")
+
+    is_video = image is None
+    upload = video if is_video else image
+    limit = MAX_VIDEO_BYTES if is_video else MAX_IMAGE_BYTES
+
+    data = upload.file.read(limit + 1)
     if not data:
         raise HTTPException(400, "Empty upload.")
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(413, "Image is larger than 10 MB.")
+    if len(data) > limit:
+        raise HTTPException(413, f"File is larger than {limit // (1024 * 1024)} MB.")
+
+    mime = "video/mp4" if is_video else (upload.content_type or "image/jpeg")
     c = _c(request)
-    diagnosis = c.start_diagnosis.execute(data, image.content_type or "image/jpeg")
+    diagnosis = c.start_diagnosis.execute(data, mime, note)
     return to_response(diagnosis, c.kb)
 
 

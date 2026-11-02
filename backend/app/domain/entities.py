@@ -66,7 +66,7 @@ class Observation(BaseModel):
     components: list[str] = []
     visible_issues: list[str] = []
     confidence: float = Field(ge=0, le=1, default=0.5)
-
+    note: str = ""
 
 class Question(BaseModel):
     id: str

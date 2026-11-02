@@ -83,3 +83,10 @@ def test_bad_image_raises_invalid_image():
     llm, _ = _llm([])
     with pytest.raises(InvalidImage):
         llm.identify(b"not an image", "image/jpeg", IDS)
+        
+def test_video_is_sent_as_video_url(monkeypatch):
+    monkeypatch.setattr("app.infrastructure.baseten_llm.prepare_video", lambda raw: b"fakevideo")
+    llm, client = _llm(['{"object_id": "toaster"}'])
+    llm.identify(b"x", "video/mp4", IDS)
+    parts = client.calls[0]["messages"][1]["content"]
+    assert any(p["type"] == "video_url" for p in parts)

@@ -33,10 +33,29 @@ def _client(tmp_path, observation):
     return TestClient(app), llm
 
 
-def _upload(client):
+def _upload(client, note=None):
     buf = io.BytesIO()
     Image.new("RGB", (32, 32), "white").save(buf, "JPEG")
-    return client.post("/diagnoses", files={"image": ("k.jpg", buf.getvalue(), "image/jpeg")})
+    return client.post(
+        "/diagnoses",
+        files={"image": ("k.jpg", buf.getvalue(), "image/jpeg")},
+        data={"note": note} if note else None,
+    )
+
+
+def test_note_about_burning_smell_stops_immediately(tmp_path):
+    client, llm = _client(tmp_path, KETTLE)
+    body = _upload(client, note="it smells like burning when I switch it on").json()
+    assert body["status"] == "complete"
+    assert all(s["risk"] == "stop" for s in body["plan"]["steps"])
+    assert body["observation"]["note"].startswith("it smells like burning")
+    assert llm.plan_calls == 0
+
+
+def test_negated_note_does_not_stop(tmp_path):
+    client, _ = _client(tmp_path, KETTLE)
+    body = _upload(client, note="it doesn't smell like burning, it just won't heat").json()
+    assert body["status"] == "needs_answers"
 
 
 KETTLE = Observation(object_id="electric_kettle")

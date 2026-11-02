@@ -10,11 +10,11 @@ import type { Diagnosis } from '../lib/types'
 import { Banner, Button, Card, Screen, SectionTitle } from '../lib/ui'
 
 type Phase = 'idle' | 'analyzing' | 'questions' | 'done' | 'error'
+type Media = { uri: string; kind: 'image' | 'video'; seconds?: number }
 
 export default function DiagnoseScreen() {
   const [phase, setPhase] = useState<Phase>('idle')
-  const [photoUri, setPhotoUri] = useState<string | null>(null)
-  const [photoMime, setPhotoMime] = useState<string | null>(null)
+  const [media, setMedia] = useState<Media | null>(null)
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null)
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
@@ -28,27 +28,38 @@ export default function DiagnoseScreen() {
     return () => clearInterval(t)
   }, [phase])
 
-  async function pick(source: 'camera' | 'library') {
+  async function pick(source: 'photo' | 'video' | 'library') {
     try {
       let result: ImagePicker.ImagePickerResult
-      if (source === 'camera') {
+      if (source === 'library') {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images', 'videos'],
+          quality: 0.6,
+        })
+      } else {
         const perm = await ImagePicker.requestCameraPermissionsAsync()
         if (!perm.granted) {
           Alert.alert(
             'Camera permission needed',
-            "Allow camera access in your phone's settings, or choose a photo from the gallery.",
+            "Allow camera access in your phone's settings, or choose a file from the gallery.",
           )
           return
         }
-        result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.6 })
-      } else {
-        result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.6 })
+        result = await ImagePicker.launchCameraAsync(
+          source === 'video'
+            ? { mediaTypes: ['videos'], videoMaxDuration: 5 }
+            : { mediaTypes: ['images'], quality: 0.6 },
+        )
       }
       if (result.canceled || !result.assets?.length) return
-      setPhotoUri(result.assets[0].uri)
-      setPhotoMime(result.assets[0].mimeType ?? 'image/jpeg')
+      const asset = result.assets[0]
+      setMedia({
+        uri: asset.uri,
+        kind: asset.type === 'video' ? 'video' : 'image',
+        seconds: asset.duration ? Math.round(asset.duration / 1000) : undefined,
+      })
     } catch {
-      Alert.alert("Couldn't open the photo picker", 'Please try again.')
+      Alert.alert("Couldn't open the camera or gallery", 'Please try again.')
     }
   }
 
@@ -75,8 +86,8 @@ export default function DiagnoseScreen() {
   }
 
   function analyze() {
-    if (!photoUri) return
-    run(() => createDiagnosis(photoUri, photoMime))
+    if (!media) return
+    run(() => createDiagnosis(media.uri, media.kind))
   }
 
   function submit() {
@@ -87,8 +98,7 @@ export default function DiagnoseScreen() {
 
   function reset() {
     setPhase('idle')
-    setPhotoUri(null)
-    setPhotoMime(null)
+    setMedia(null)
     setDiagnosis(null)
     setDraft({})
     setError('')
@@ -99,9 +109,15 @@ export default function DiagnoseScreen() {
       <Screen>
         <Card style={{ alignItems: 'center', gap: 14, paddingVertical: 36 }}>
           <ActivityIndicator size='large' color={colors.accent} />
-          <Text style={s.h2}>{diagnosis ? 'Updating your diagnosis' : 'Analyzing your photo'}</Text>
-          <Text style={s.muted}>Usually 5–20 seconds · {elapsed}s</Text>
-          {elapsed > 30 ? (
+          <Text style={s.h2}>
+            {diagnosis
+              ? 'Updating your diagnosis'
+              : media?.kind === 'video'
+                ? 'Analyzing your video'
+                : 'Analyzing your photo'}
+          </Text>
+          <Text style={s.muted}>Usually 5–30 seconds · {elapsed}s</Text>
+          {elapsed > 40 ? (
             <Text style={s.muted}>Taking longer than usual. Still working…</Text>
           ) : null}
         </Card>
@@ -171,44 +187,54 @@ export default function DiagnoseScreen() {
     <Screen>
       <Text style={s.h1}>New diagnosis</Text>
       <Text style={s.muted}>
-        Photograph the appliance, ideally showing the damaged or faulty part.
+        Take a photo, or film the problem for a few seconds, ideally showing the damaged or faulty
+        part.
       </Text>
 
-      {photoUri ? (
-        <Image source={{ uri: photoUri }} style={s.preview} accessibilityLabel='Selected photo' />
+      {media?.kind === 'image' ? (
+        <Image source={{ uri: media.uri }} style={s.preview} accessibilityLabel='Selected photo' />
+      ) : media?.kind === 'video' ? (
+        <Card style={s.placeholder}>
+          <Ionicons name='videocam' size={44} color={colors.accent} />
+          <Text style={s.h2}>Video ready</Text>
+          <Text style={s.muted}>
+            {media.seconds ? `${media.seconds} s · ` : ''}the first 5 seconds will be analyzed
+          </Text>
+        </Card>
       ) : (
         <Card style={s.placeholder}>
           <Ionicons name='camera-outline' size={44} color={colors.textMuted} />
-          <Text style={s.muted}>No photo yet</Text>
+          <Text style={s.muted}>Nothing selected yet</Text>
         </Card>
       )}
 
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ flex: 1 }}>
           <Button
-            title='Camera'
+            title='Photo'
             icon='camera'
-            variant={photoUri ? 'secondary' : 'primary'}
-            onPress={() => pick('camera')}
+            variant={media ? 'secondary' : 'primary'}
+            onPress={() => pick('photo')}
           />
         </View>
         <View style={{ flex: 1 }}>
-          <Button
-            title='Gallery'
-            icon='images'
-            variant='secondary'
-            onPress={() => pick('library')}
-          />
+          <Button title='Video' icon='videocam' variant='secondary' onPress={() => pick('video')} />
         </View>
       </View>
+      <Button
+        title='Choose from gallery'
+        icon='images'
+        variant='secondary'
+        onPress={() => pick('library')}
+      />
 
-      {photoUri ? <Button title='Analyze' icon='sparkles' onPress={analyze} /> : null}
+      {media ? <Button title='Analyze' icon='sparkles' onPress={analyze} /> : null}
 
       <Card>
-        <SectionTitle>Tips for a good photo</SectionTitle>
-        <Text style={s.muted}>• Good light, no glare</Text>
-        <Text style={s.muted}>• One appliance in the frame</Text>
+        <SectionTitle>Tips</SectionTitle>
+        <Text style={s.muted}>• Good light, one appliance in the frame</Text>
         <Text style={s.muted}>• Get close to the problem area</Text>
+        <Text style={s.muted}>• Video: film the fault for 3–5 seconds. Sound isn't analyzed.</Text>
       </Card>
     </Screen>
   )

@@ -18,9 +18,20 @@ PHOTO_NEEDS_CONFIRMATION = ("burn mark", "scorch", "melted")
 GLOBAL_RULES = [
     SafetyRule(
         id="g_fire",
-        triggers=["burning smell", "smell of burning", "smoke", "sparks", "sparking", "melted", "scorch", "burn mark", "on fire"],
+        triggers=[
+            "burning smell", "smell of burning", "smells of burning", "smells like burning",
+            "smell like burning", "smell burnt", "smells burnt", "burnt smell", "burning odor",
+            "smells like smoke", "smell of smoke", "smoke", "sparks", "sparking",
+            "caught fire", "catch fire", "on fire", "melted", "scorch", "burn mark",
+        ],
         risk=Risk.STOP,
         message="Stop using the appliance. Unplug it only if you can reach the plug safely, keep it away from flammable things, and do not try to repair it.",
+    ),
+    SafetyRule(
+        id="g_shock",
+        triggers=["electric shock", "got a shock", "gave me a shock", "shocked me", "electrocuted"],
+        risk=Risk.STOP,
+        message="Stop using it and don't touch it again. An electric shock means a live fault: unplug it only if you can do so safely, and have it checked by a qualified technician.",
     ),
     SafetyRule(
         id="g_exposed_wiring",
@@ -93,7 +104,7 @@ def needs_heat_confirmation(observation: Observation, answers: list[Answer]) -> 
     """Photo shows burn-like words and the user has not been asked about them yet."""
     if any(a.question_id == CONFIRM_QUESTION_ID for a in answers):
         return False
-    photo_text = " ".join(observation.visible_issues).lower()
+    photo_text = " ".join([*observation.visible_issues, observation.note]).lower()
     return any(_present(t, photo_text, True) for t in PHOTO_NEEDS_CONFIRMATION)
 
 
@@ -112,7 +123,7 @@ def evaluate(
     observation: Observation, answers: list[Answer], kb: ObjectKnowledge
 ) -> list[SafetyRule]:
     """Return every safety rule triggered by the photo analysis or the user's answers."""
-    photo_text = " ".join(observation.visible_issues).lower()
+    photo_text = " ".join([*observation.visible_issues, observation.note]).lower()
     answer_text = " ".join(
         a.value for a in answers if a.question_id != CONFIRM_QUESTION_ID
     ).lower()
