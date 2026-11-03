@@ -1,12 +1,14 @@
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useDictation } from './speech'
-import { colors } from './theme'
+import { useTheme, type ThemeColors } from './theme'
 import { Card, SectionTitle } from './ui'
 
 const MAX_NOTE = 500
 
 export function NoteInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { colors, mode } = useTheme()
+  const s = makeStyles(colors, mode)
   const dictation = useDictation((text) => {
     onChange(((value ? value.trimEnd() + ' ' : '') + text).slice(0, MAX_NOTE))
   })
@@ -60,32 +62,34 @@ export function NoteInput({ value, onChange }: { value: string; onChange: (v: st
   )
 }
 
-const s = StyleSheet.create({
-  input: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-    color: colors.text,
-    fontSize: 15,
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 12,
-    paddingRight: 64,
-  },
-  mic: {
-    position: 'absolute',
-    right: 8,
-    bottom: 8,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  micOn: { backgroundColor: colors.critical },
-  listening: { color: colors.accentLight, fontSize: 14 },
-  error: { color: colors.warning, fontSize: 14 },
-  hint: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
-})
+function makeStyles(colors: ThemeColors, mode: 'light' | 'dark') {
+  return StyleSheet.create({
+    input: {
+      minHeight: 100,
+      textAlignVertical: 'top',
+      color: colors.text,
+      fontSize: 15,
+      backgroundColor: colors.bg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: 12,
+      paddingRight: 64,
+    },
+    mic: {
+      position: 'absolute',
+      right: 8,
+      bottom: 8,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    micOn: { backgroundColor: colors.critical },
+    listening: { color: mode === 'dark' ? colors.accentLight : colors.accent, fontSize: 14 },
+    error: { color: colors.warning, fontSize: 14 },
+    hint: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+  })
+}

@@ -3,10 +3,12 @@ import { Alert, StyleSheet, Text } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { HistoryRow } from '../lib/HistoryRow'
 import { clearHistory, loadHistory, type HistoryItem } from '../lib/storage'
-import { colors } from '../lib/theme'
+import { useTheme, type ThemeColors } from '../lib/theme'
 import { Button, Card, Screen } from '../lib/ui'
 
 export default function History() {
+  const { colors } = useTheme()
+  const s = makeStyles(colors)
   const [items, setItems] = useState<HistoryItem[] | null>(null)
 
   useFocusEffect(
@@ -56,7 +58,9 @@ export default function History() {
   )
 }
 
-const s = StyleSheet.create({
-  h1: { color: colors.text, fontSize: 26, fontWeight: '800' },
-  muted: { color: colors.textMuted, fontSize: 15, lineHeight: 22 },
-})
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    h1: { color: colors.text, fontSize: 26, fontWeight: '800' },
+    muted: { color: colors.textMuted, fontSize: 15, lineHeight: 22 },
+  })
+}

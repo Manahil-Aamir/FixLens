@@ -3,10 +3,11 @@ import { ActivityIndicator, Text } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { ResultView } from '../../lib/ResultView'
 import { getHistoryItem, type HistoryItem } from '../../lib/storage'
-import { colors } from '../../lib/theme'
+import { useTheme } from '../../lib/theme'
 import { Card, Screen } from '../../lib/ui'
 
 export default function Report() {
+  const { colors } = useTheme()
   const { id } = useLocalSearchParams<{ id: string }>()
   const [item, setItem] = useState<HistoryItem | null | undefined>(undefined)
 

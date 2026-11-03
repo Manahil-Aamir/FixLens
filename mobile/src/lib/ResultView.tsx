@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native'
-import { colors } from './theme'
+import { useTheme, type ThemeColors } from './theme'
 import type { Diagnosis } from './types'
 import { worstRisk } from './util'
 import { Banner, Card, Chip, RiskBadge, SectionTitle } from './ui'
@@ -7,6 +7,9 @@ import { Banner, Card, Chip, RiskBadge, SectionTitle } from './ui'
 const LABEL = { most_likely: 'Most likely', possible: 'Possible' } as const
 
 export function ResultView({ diagnosis }: { diagnosis: Diagnosis }) {
+  const { colors, mode } = useTheme()
+  const s = makeStyles(colors)
+
   if (diagnosis.status === 'unsupported') {
     return (
       <Card>
@@ -89,7 +92,12 @@ export function ResultView({ diagnosis }: { diagnosis: Diagnosis }) {
           {plan.steps.map((step) => (
             <Card key={step.order}>
               <View style={s.stepHead}>
-                <View style={s.num}>
+                <View
+                  style={[
+                    s.num,
+                    { backgroundColor: mode === 'dark' ? colors.accentLight : colors.accent },
+                  ]}
+                >
                   <Text style={s.numText}>{step.order}</Text>
                 </View>
                 <RiskBadge risk={step.risk} />
@@ -109,21 +117,22 @@ export function ResultView({ diagnosis }: { diagnosis: Diagnosis }) {
   )
 }
 
-const s = StyleSheet.create({
-  caption: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
-  title: { color: colors.text, fontSize: 24, fontWeight: '800' },
-  body: { color: colors.text, fontSize: 15, lineHeight: 22 },
-  hypRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  stepHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  num: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  numText: { color: colors.onAccent, fontWeight: '800' },
-  stopIf: { color: colors.warning, fontSize: 14, fontWeight: '600' },
-})
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    caption: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+    title: { color: colors.text, fontSize: 24, fontWeight: '800' },
+    body: { color: colors.text, fontSize: 15, lineHeight: 22 },
+    hypRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    stepHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    num: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    numText: { color: colors.onAccent, fontWeight: '800' },
+    stopIf: { color: colors.warning, fontSize: 14, fontWeight: '600' },
+  })
+}

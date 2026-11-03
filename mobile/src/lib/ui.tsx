@@ -10,12 +10,13 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, radius, RISK_STYLE } from './theme'
+import { radius, RISK_STYLE, useTheme } from './theme'
 import type { Risk } from './types'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
 export function Screen({ children, safeTop = true }: { children: ReactNode; safeTop?: boolean }) {
+  const { colors } = useTheme()
   const content = (
     <ScrollView
       contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 40 }}
@@ -33,11 +34,23 @@ export function Screen({ children, safeTop = true }: { children: ReactNode; safe
 }
 
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
-  return <View style={[styles.card, style]}>{children}</View>
+  const { colors } = useTheme()
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  )
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
-  return <Text style={styles.section}>{children}</Text>
+  const { colors } = useTheme()
+  return <Text style={[styles.section, { color: colors.text }]}>{children}</Text>
 }
 
 export function Button({
@@ -55,6 +68,7 @@ export function Button({
   disabled?: boolean
   loading?: boolean
 }) {
+  const { colors } = useTheme()
   const primary = variant === 'primary'
   const fg = primary ? colors.onAccent : colors.accent
   const off = disabled || loading
@@ -66,7 +80,9 @@ export function Button({
       accessibilityLabel={title}
       style={({ pressed }) => [
         styles.button,
-        primary ? styles.primary : styles.secondary,
+        primary
+          ? { backgroundColor: colors.accent }
+          : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.accent },
         off && { opacity: 0.5 },
         pressed && { opacity: 0.85 },
       ]}
@@ -84,14 +100,16 @@ export function Button({
 }
 
 export function RiskBadge({ risk, prefix = '' }: { risk: Risk; prefix?: string }) {
+  const { colors } = useTheme()
   const r = RISK_STYLE[risk]
+  const color = colors[r.color]
   return (
     <View
-      style={[styles.badge, { backgroundColor: r.color + '26', borderColor: r.color }]}
+      style={[styles.badge, { backgroundColor: color + '26', borderColor: color }]}
       accessibilityLabel={`${prefix}${r.label}`}
     >
-      <Ionicons name={r.icon} size={14} color={r.color} />
-      <Text style={[styles.badgeText, { color: r.color }]}>
+      <Ionicons name={r.icon} size={14} color={color} />
+      <Text style={[styles.badgeText, { color }]}>
         {prefix}
         {r.label}
       </Text>
@@ -100,19 +118,24 @@ export function RiskBadge({ risk, prefix = '' }: { risk: Risk; prefix?: string }
 }
 
 export function Chip({ text, tone = 'muted' }: { text: string; tone?: 'accent' | 'muted' }) {
+  const { colors, mode } = useTheme()
   const accent = tone === 'accent'
+  const accentColor = mode === 'dark' ? colors.accentLight : colors.accent
   return (
     <View
       style={[
         styles.chip,
         accent
-          ? { backgroundColor: colors.accent + '26', borderColor: colors.accent }
+          ? {
+              backgroundColor: accentColor + '1A',
+              borderColor: accentColor,
+            }
           : { backgroundColor: colors.bg, borderColor: colors.border },
       ]}
     >
       <Text
         style={{
-          color: accent ? colors.accentLight : colors.text,
+          color: accent ? accentColor : colors.text,
           fontSize: 13,
           fontWeight: '600',
         }}
@@ -132,6 +155,7 @@ export function Banner({
   title: string
   text?: string
 }) {
+  const { colors } = useTheme()
   const color = tone === 'critical' ? colors.critical : colors.warning
   const icon: IconName = tone === 'critical' ? 'ban' : 'warning'
   return (
@@ -139,7 +163,7 @@ export function Banner({
       <Ionicons name={icon} size={24} color={color} />
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={[styles.bannerTitle, { color }]}>{title}</Text>
-        {text ? <Text style={styles.bannerText}>{text}</Text> : null}
+        {text ? <Text style={[styles.bannerText, { color: colors.text }]}>{text}</Text> : null}
       </View>
     </View>
   )
@@ -147,14 +171,12 @@ export function Banner({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.card,
     padding: 16,
     gap: 10,
     borderWidth: 1,
-    borderColor: colors.border,
   },
-  section: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  section: { fontSize: 17, fontWeight: '700' },
   button: {
     minHeight: 52,
     borderRadius: radius.button,
@@ -164,8 +186,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  primary: { backgroundColor: colors.accent },
-  secondary: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.accent },
   buttonText: { fontSize: 16, fontWeight: '700' },
   badge: {
     flexDirection: 'row',
@@ -188,5 +208,5 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   bannerTitle: { fontSize: 16, fontWeight: '800' },
-  bannerText: { color: colors.text, fontSize: 14, lineHeight: 20 },
+  bannerText: { fontSize: 14, lineHeight: 20 },
 })
