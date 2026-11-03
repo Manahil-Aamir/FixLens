@@ -26,6 +26,7 @@ export interface Observation {
   object_id: string
   components: string[]
   visible_issues: string[]
+  note?: string
 }
 
 export interface Diagnosis {

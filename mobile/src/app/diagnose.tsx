@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { Ionicons } from '@expo/vector-icons'
 import { ApiError, createDiagnosis, sendAnswers } from '../lib/api'
@@ -8,13 +17,19 @@ import { saveToHistory } from '../lib/storage'
 import { colors, radius } from '../lib/theme'
 import type { Diagnosis } from '../lib/types'
 import { Banner, Button, Card, Screen, SectionTitle } from '../lib/ui'
+import { NoteInput } from '../lib/NoteInput'
 
 type Phase = 'idle' | 'analyzing' | 'questions' | 'done' | 'error'
 type Media = { uri: string; kind: 'image' | 'video'; seconds?: number }
 
+const MAX_VIDEO_SECONDS = 60
+const MAX_VIDEO_BYTES = 120 * 1024 * 1024
+const MAX_NOTE = 500
+
 export default function DiagnoseScreen() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [media, setMedia] = useState<Media | null>(null)
+  const [note, setNote] = useState('')
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null)
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
@@ -47,12 +62,19 @@ export default function DiagnoseScreen() {
         }
         result = await ImagePicker.launchCameraAsync(
           source === 'video'
-            ? { mediaTypes: ['videos'], videoMaxDuration: 5 }
+            ? { mediaTypes: ['videos'], videoMaxDuration: MAX_VIDEO_SECONDS }
             : { mediaTypes: ['images'], quality: 0.6 },
         )
       }
       if (result.canceled || !result.assets?.length) return
       const asset = result.assets[0]
+      if (asset.type === 'video' && asset.fileSize && asset.fileSize > MAX_VIDEO_BYTES) {
+        Alert.alert(
+          'Video is too large',
+          'The limit is 120 MB. Try a shorter clip, or set your camera to 1080p or 720p.',
+        )
+        return
+      }
       setMedia({
         uri: asset.uri,
         kind: asset.type === 'video' ? 'video' : 'image',
@@ -87,7 +109,7 @@ export default function DiagnoseScreen() {
 
   function analyze() {
     if (!media) return
-    run(() => createDiagnosis(media.uri, media.kind))
+    run(() => createDiagnosis(media.uri, media.kind, note))
   }
 
   function submit() {
@@ -99,12 +121,14 @@ export default function DiagnoseScreen() {
   function reset() {
     setPhase('idle')
     setMedia(null)
+    setNote('')
     setDiagnosis(null)
     setDraft({})
     setError('')
   }
 
   if (phase === 'analyzing') {
+    const isVideo = media?.kind === 'video' && !diagnosis
     return (
       <Screen>
         <Card style={{ alignItems: 'center', gap: 14, paddingVertical: 36 }}>
@@ -112,12 +136,14 @@ export default function DiagnoseScreen() {
           <Text style={s.h2}>
             {diagnosis
               ? 'Updating your diagnosis'
-              : media?.kind === 'video'
+              : isVideo
                 ? 'Analyzing your video'
                 : 'Analyzing your photo'}
           </Text>
-          <Text style={s.muted}>Usually 5–30 seconds · {elapsed}s</Text>
-          {elapsed > 40 ? (
+          <Text style={s.muted}>
+            {isVideo ? 'Videos can take up to a minute' : 'Usually 5–30 seconds'} · {elapsed}s
+          </Text>
+          {elapsed > 60 ? (
             <Text style={s.muted}>Taking longer than usual. Still working…</Text>
           ) : null}
         </Card>
@@ -187,7 +213,7 @@ export default function DiagnoseScreen() {
     <Screen>
       <Text style={s.h1}>New diagnosis</Text>
       <Text style={s.muted}>
-        Take a photo, or film the problem for a few seconds, ideally showing the damaged or faulty
+        Take a photo, or film the problem for up to a minute, ideally showing the damaged or faulty
         part.
       </Text>
 
@@ -198,7 +224,10 @@ export default function DiagnoseScreen() {
           <Ionicons name='videocam' size={44} color={colors.accent} />
           <Text style={s.h2}>Video ready</Text>
           <Text style={s.muted}>
-            {media.seconds ? `${media.seconds} s · ` : ''}the first 5 seconds will be analyzed
+            {media.seconds ? `${media.seconds} s · ` : ''}
+            {media.seconds && media.seconds > MAX_VIDEO_SECONDS
+              ? 'only the first 60 seconds will be analyzed'
+              : 'the whole clip will be analyzed'}
           </Text>
         </Card>
       ) : (
@@ -228,13 +257,15 @@ export default function DiagnoseScreen() {
         onPress={() => pick('library')}
       />
 
+      <NoteInput value={note} onChange={setNote} />
+
       {media ? <Button title='Analyze' icon='sparkles' onPress={analyze} /> : null}
 
       <Card>
         <SectionTitle>Tips</SectionTitle>
         <Text style={s.muted}>• Good light, one appliance in the frame</Text>
         <Text style={s.muted}>• Get close to the problem area</Text>
-        <Text style={s.muted}>• Video: film the fault for 3–5 seconds. Sound isn't analyzed.</Text>
+        <Text style={s.muted}>• Video: film at 1080p or 720p. Very large files are refused.</Text>
       </Card>
     </Screen>
   )
@@ -244,6 +275,7 @@ const s = StyleSheet.create({
   h1: { color: colors.text, fontSize: 26, fontWeight: '800' },
   h2: { color: colors.text, fontSize: 19, fontWeight: '700' },
   muted: { color: colors.textMuted, fontSize: 15, lineHeight: 22 },
+  hint: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
   q: { color: colors.text, fontSize: 16, fontWeight: '700', lineHeight: 22 },
   preview: {
     width: '100%',
@@ -252,6 +284,17 @@ const s = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   placeholder: { height: 200, alignItems: 'center', justifyContent: 'center' },
+  input: {
+    minHeight: 90,
+    textAlignVertical: 'top',
+    color: colors.text,
+    fontSize: 15,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 12,
+  },
   option: {
     flexDirection: 'row',
     alignItems: 'center',

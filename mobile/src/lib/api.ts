@@ -1,8 +1,9 @@
-import type { Diagnosis, Supported } from './types'
 import { File } from 'expo-file-system'
+import type { Diagnosis, Supported } from './types'
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.10:8000'
 const TIMEOUT_MS = 60_000
+const VIDEO_TIMEOUT_MS = 180_000
 
 export class ApiError extends Error {
   status?: number
@@ -12,9 +13,13 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  timeoutMs: number = TIMEOUT_MS,
+): Promise<T> {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const res = await fetch(API_URL + path, { ...init, signal: controller.signal })
     const text = await res.text()
@@ -52,12 +57,17 @@ export function listObjects(): Promise<Supported[]> {
 export function createDiagnosis(
   uri: string,
   kind: 'image' | 'video' = 'image',
+  note?: string,
 ): Promise<Diagnosis> {
   const form = new FormData()
-  const name = kind === 'video' ? 'clip.mp4' : 'photo.jpg'
   // The form field name matches the backend: "image" or "video".
-  form.append(kind, new File(uri) as unknown as Blob, name)
-  return request<Diagnosis>('/diagnoses', { method: 'POST', body: form })
+  form.append(kind, new File(uri) as unknown as Blob, kind === 'video' ? 'clip.mp4' : 'photo.jpg')
+  if (note && note.trim()) form.append('note', note.trim())
+  return request<Diagnosis>(
+    '/diagnoses',
+    { method: 'POST', body: form },
+    kind === 'video' ? VIDEO_TIMEOUT_MS : TIMEOUT_MS,
+  )
 }
 
 export function sendAnswers(

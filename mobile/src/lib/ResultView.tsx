@@ -64,6 +64,12 @@ export function ResultView({ diagnosis }: { diagnosis: Diagnosis }) {
           </Text>
         </Card>
       ) : null}
+      {diagnosis.observation.note ? (
+        <Card>
+          <SectionTitle>Your description</SectionTitle>
+          <Text style={s.body}>{diagnosis.observation.note}</Text>
+        </Card>
+      ) : null}
 
       {diagnosis.observation.visible_issues.length > 0 ? (
         <Card>

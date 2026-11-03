@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.manahil24.mobile"
     },
     "web": {
       "output": "server",
@@ -32,11 +33,35 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "FixLens uses the microphone so you can describe the problem by voice.",
+          "speechRecognitionPermission": "FixLens uses speech recognition to turn your voice into text.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "FixLens uses the camera to photograph or film the appliance."
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "d60ba8af-06dc-45ed-8fd0-491eb4042356"
+      }
     }
   }
 }
