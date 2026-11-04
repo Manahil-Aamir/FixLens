@@ -13,7 +13,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { Ionicons } from '@expo/vector-icons'
 import { ApiError, createDiagnosis, sendAnswers } from '../../lib/api'
 import { ResultView } from '../../lib/ResultView'
-import { saveToHistory } from '../../lib/storage'
+import { saveToHistory, type QA } from '../../lib/storage'
 import { radius, useTheme, type ThemeColors, type ThemeMode } from '../../lib/theme'
 import type { Diagnosis } from '../../lib/types'
 import { Banner, Button, Card, Screen, SectionTitle } from '../../lib/ui'
@@ -37,6 +37,7 @@ export default function DiagnoseScreen() {
   const [error, setError] = useState('')
   const [elapsed, setElapsed] = useState(0)
   const retryRef = useRef<(() => void) | null>(null)
+  const qaRef = useRef<QA[]>([])
 
   useEffect(() => {
     if (phase !== 'analyzing') return
@@ -93,7 +94,7 @@ export default function DiagnoseScreen() {
       setDraft({})
       setPhase('questions')
     } else {
-      await saveToHistory(d)
+      await saveToHistory(d, { mediaUri: media?.uri, mediaKind: media?.kind, qa: qaRef.current })
       setPhase('done')
     }
   }
@@ -117,10 +118,16 @@ export default function DiagnoseScreen() {
   function submit() {
     if (!diagnosis) return
     const answers = diagnosis.questions.map((q) => ({ question_id: q.id, value: draft[q.id] }))
+    qaRef.current = [
+      ...qaRef.current,
+      ...diagnosis.questions.map((q) => ({ question: q.text, answer: draft[q.id] })),
+    ]
     run(() => sendAnswers(diagnosis.id, answers))
   }
+  s
 
   function reset() {
+    qaRef.current = []
     setPhase('idle')
     setMedia(null)
     setNote('')
