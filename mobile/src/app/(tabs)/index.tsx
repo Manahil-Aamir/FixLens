@@ -2,12 +2,12 @@ import { useCallback, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { API_URL, listObjects } from '../lib/api'
-import { HistoryRow } from '../lib/HistoryRow'
-import { loadHistory, type HistoryItem } from '../lib/storage'
-import { useTheme, type ThemeColors } from '../lib/theme'
-import type { Supported } from '../lib/types'
-import { Banner, Button, Card, Chip, Screen, SectionTitle } from '../lib/ui'
+import { API_URL, listObjects } from '../../lib/api'
+import { HistoryRow } from '../../lib/HistoryRow'
+import { loadHistory, type HistoryItem } from '../../lib/storage'
+import { useTheme, type ThemeColors } from '../../lib/theme'
+import type { Supported } from '../../lib/types'
+import { Banner, Button, Card, Chip, Screen, SectionTitle } from '../../lib/ui'
 
 export default function Home() {
   const router = useRouter()

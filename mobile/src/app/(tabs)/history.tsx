@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react'
 import { Alert, StyleSheet, Text } from 'react-native'
 import { useFocusEffect } from 'expo-router'
-import { HistoryRow } from '../lib/HistoryRow'
-import { clearHistory, loadHistory, type HistoryItem } from '../lib/storage'
-import { useTheme, type ThemeColors } from '../lib/theme'
-import { Button, Card, Screen } from '../lib/ui'
+import { HistoryRow } from '../../lib/HistoryRow'
+import { clearHistory, loadHistory, type HistoryItem } from '../../lib/storage'
+import { useTheme, type ThemeColors } from '../../lib/theme'
+import { Button, Card, Screen } from '../../lib/ui'
 
 export default function History() {
   const { colors } = useTheme()
