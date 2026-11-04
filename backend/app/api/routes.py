@@ -3,10 +3,11 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from app.api.schemas import AnswersIn, DiagnosisOut, to_response
 from app.domain.entities import Answer
 from app.domain.errors import DiagnosisNotFound
+import os
 
 router = APIRouter()
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
-MAX_VIDEO_BYTES = 120 * 1024 * 1024
+MAX_VIDEO_BYTES = int(os.getenv("MAX_VIDEO_MB", "120")) * 1024 * 1024
 MAX_NOTE_CHARS = 500
 
 
