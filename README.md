@@ -4,11 +4,11 @@
 
 Built for the Meta hackathon (theme: **Build for Your World**) on `meta-models/muse-spark-open-1026`, served through Baseten's OpenAI-compatible API.
 
-|                   |                |
-| ----------------- | -------------- |
-| Demo video        | TODO: add link |
-| Android app (APK) | TODO: add link |
-| Live API          | TODO: add link |
+|                   |                                                                                                 |
+| ----------------- | ----------------------------------------------------------------------------------------------- |
+| Demo video        | https://youtu.be/f6irpGaJwa8                                                                    |
+| Android app (APK) | https://expo.dev/accounts/manahil24/projects/mobile/builds/a528efac-be02-437d-b1a0-d8db27224489 |
+| Live API          | https://fixlensapi.onrender.com                                                                 |
 
 ---
 
