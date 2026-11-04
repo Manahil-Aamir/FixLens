@@ -394,7 +394,7 @@ def collect_photos(paths: list[str]) -> list[Path]:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Check a running FixLens API.")
     ap.add_argument("photos", nargs="*", help="photo files or folders for full flows")
-    ap.add_argument("--base", default="http://localhost:8000")
+    ap.add_argument("--base", default="https://fixlensapi.onrender.com")
     ap.add_argument("--timeout", type=float, default=120.0)
     ap.add_argument("--strategies", default="first,last",
                     help="how to answer questions: first, last, or both (comma separated)")
