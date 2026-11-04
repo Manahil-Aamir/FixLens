@@ -5,7 +5,7 @@ import type { HistoryItem } from './storage'
 import { formatDate, worstRisk } from './util'
 import { Card, RiskBadge } from './ui'
 
-export function HistoryRow({ item }: { item: HistoryItem }) {
+export function HistoryRow({ item, onPress }: { item: HistoryItem; onPress?: () => void }) {
   const router = useRouter()
   const { colors } = useTheme()
   const s = makeStyles(colors)
@@ -15,7 +15,7 @@ export function HistoryRow({ item }: { item: HistoryItem }) {
   return (
     <Pressable
       accessibilityRole='button'
-      onPress={() => router.push({ pathname: '/report/[id]', params: { id: d.id } })}
+      onPress={onPress ?? (() => router.push({ pathname: '/report/[id]', params: { id: d.id } }))}
     >
       <Card>
         <View style={s.row}>
